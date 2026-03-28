@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AxoLottaFun — Raise your very own wet, sentient, marshmallow.</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --aqua-light:#C2EEF5;--aqua-mid:#6ECFE8;--aqua-deep:#3AA8C8;--aqua-abyss:#1A6A88;
+  --coral:#FF7F6E;--coral-dark:#D95C4A;--mint:#7ADBB8;--mint-dark:#4DBFA0;
+  --sand:#F5EDCC;--sand-mid:#E8D8A0;--cream:#FDFAF0;--cream-dark:#F2EDD8;
+  --bark:#5C3A22;--bark-light:#8A5C38;
+  --axo-pink:#F9B8D8;--axo-gill:#FF8EC0;
+  --bubble-yellow:#FFF082;--bubble-orange:#FFB347;--pearl:#B48FD4;
+  --ui-frame:#3A4A6A;--text-main:#1E2A3A;--text-mid:#3A4A6A;--text-light:#7A8FAA;
+  --need-hunger:#FF7F6E;--need-happy:#FF8EC0;--need-clean:#6ECFE8;--need-enrich:#7ADBB8;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{width:100%;height:100%;overflow:hidden;background:#0E1828;font-family:'Nunito',sans-serif;color:var(--text-main);}
+
+/* ── LOADING SCREEN ── */
+#loading{position:fixed;inset:0;background:#0E1828;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s;}
+#loading h1{font-family:'Fredoka One',cursive;font-size:56px;color:#F9B8D8;text-shadow:0 0 40px rgba(249,184,216,.5);margin-bottom:12px;}
+#loading p{color:var(--aqua-light);font-size:14px;letter-spacing:.12em;text-transform:uppercase;font-family:'Space Mono',monospace;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* ── MAIN LAYOUT ── */
+#game{position:fixed;inset:0;display:flex;flex-direction:column;background:linear-gradient(180deg,#0A1A2E 0%,#0E2840 20%,#163A58 50%,#1E5A78 70%,var(--aqua-mid) 85%,var(--aqua-light) 100%);}
+
+/* ── TOP HUD ── */
+#hud-top{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(10,24,46,.7);backdrop-filter:blur(8px);border-bottom:2px solid rgba(110,207,232,.2);flex-shrink:0;z-index:10;}
+.hud-pill{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);border-radius:20px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:12px;color:white;}
+.hud-pill .val{font-size:14px;font-weight:700;color:var(--bubble-yellow);}
+.hud-pill.bps .val{color:var(--aqua-light);font-size:11px;}
+#mood-hud{display:flex;align-items:center;gap:6px;}
+.mood-label{font-family:'Fredoka One',cursive;font-size:14px;color:white;}
+#mood-bar-wrap{width:80px;height:10px;background:rgba(255,255,255,.15);border-radius:10px;border:1px solid rgba(255,255,255,.2);}
+#mood-bar{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--need-happy),var(--bubble-yellow));transition:width .5s,background .5s;}
+
+/* ── TANK SCENE ── */
+#tank{position:relative;flex:1;overflow:hidden;cursor:pointer;}
+#tank-bg{position:absolute;inset:0;}
+
+/* Water layers */
+.water-layer{position:absolute;inset:0;}
+#water-surface{position:absolute;top:0;left:0;right:0;height:60px;background:linear-gradient(180deg,rgba(110,207,232,.3) 0%,transparent 100%);z-index:2;}
+
+/* Caustics shimmer */
+#caustics{position:absolute;inset:0;z-index:1;opacity:.18;background:repeating-linear-gradient(45deg,transparent,transparent 8px,rgba(110,207,232,.4) 8px,rgba(110,207,232,.4) 9px),repeating-linear-gradient(-45deg,transparent,transparent 8px,rgba(194,238,245,.3) 8px,rgba(194,238,245,.3) 9px);animation:caustic-drift 6s ease-in-out infinite alternate;}
+@keyframes caustic-drift{from{transform:translateX(-4px) translateY(-3px)}to{transform:translateX(4px) translateY(3px)}}
+
+/* Substrate */
+#substrate{position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(180deg,var(--sand-mid) 0%,var(--sand) 50%,#DDD0A8 100%);z-index:3;}
+#substrate::before{content:'';position:absolute;top:-15px;left:0;right:0;height:20px;background:radial-gradient(ellipse at 50% 100%,rgba(232,216,160,.8) 0%,transparent 70%);}
+
+/* Bubbles canvas */
+#bubbles-canvas{position:absolute;inset:0;z-index:5;pointer-events:none;}
+
+/* Float text canvas */
+#float-canvas{position:absolute;inset:0;z-index:8;pointer-events:none;}
+
+/* Particles */
+#particles{position:absolute;inset:0;z-index:6;pointer-events:none;}
+
+/* ── AXOLOTL ── */
+#axo-container{position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:7;transition:filter .5s;}
+#axo-svg{display:block;transform-origin:center bottom;cursor:pointer;filter:drop-shadow(0 8px 20px rgba(249,184,216,.4));}
+#axo-svg:hover{filter:drop-shadow(0 8px 32px rgba(249,184,216,.7));}
+
+/* Animations */
+@keyframes axo-idle{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-6px) rotate(1deg)}75%{transform:translateY(-3px) rotate(-1deg)}}
+@keyframes axo-happy{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-12px) scale(1.05)}40%{transform:translateY(-8px) scale(.98)}60%{transform:translateY(-14px) scale(1.06)}80%{transform:translateY(-5px) scale(.99)}}
+@keyframes axo-spin{0%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(1.1)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes axo-sad{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes gill-wave{0%,100%{transform:rotate(0deg)}50%{transform:rotate(8deg)}}
+@keyframes gill-flare{0%{transform:scale(1)}50%{transform:scale(1.3) rotate(10deg)}100%{transform:scale(1)}}
+@keyframes blink{0%,90%,100%{transform:scaleY(1)}92%,98%{transform:scaleY(0.05)}}
+
+/* Helpers */
+.helper{position:absolute;bottom:62px;cursor:default;z-index:4;animation:helper-idle 3s ease-in-out infinite;}
+@keyframes helper-idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+/* ── NEEDS BAR (BOTTOM) ── */
+#hud-bottom{background:rgba(10,24,46,.85);backdrop-filter:blur(8px);border-top:2px solid rgba(110,207,232,.2);padding:10px 16px 14px;flex-shrink:0;z-index:10;}
+.needs-row{display:flex;gap:10px;margin-bottom:8px;}
+.need-item{flex:1;display:flex;flex-direction:column;gap:3px;}
+.need-label{font-family:'Fredoka One',cursive;font-size:11px;color:rgba(255,255,255,.7);display:flex;justify-content:space-between;}
+.need-val{font-family:'Space Mono',monospace;font-size:9px;color:rgba(255,255,255,.5);}
+.need-bar-outer{height:8px;background:rgba(255,255,255,.1);border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1);}
+.need-bar-inner{height:100%;border-radius:10px;transition:width .8s ease,background .4s;}
+
+/* Actions row */
+.actions-row{display:flex;gap:8px;align-items:center;}
+.action-btn{flex:1;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);border-radius:12px;padding:6px 4px;font-family:'Fredoka One',cursive;font-size:12px;color:white;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+.action-btn .icon{font-size:18px;line-height:1;}
+.action-btn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.4);transform:translateY(-1px);}
+.action-btn:active{transform:translateY(1px);background:rgba(255,255,255,.08);}
+.action-btn.cooldown{opacity:.45;cursor:not-allowed;}
+.action-btn.cooldown:hover{transform:none;}
+
+/* ── PANELS ── */
+.panel-overlay{position:fixed;inset:0;background:rgba(10,24,46,.6);z-index:50;display:none;align-items:flex-end;}
+.panel-overlay.open{display:flex;}
+.panel{width:100%;max-height:78vh;background:var(--cream);border-radius:20px 20px 0 0;border-top:4px solid var(--ui-frame);overflow:hidden;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .22s cubic-bezier(.34,1.56,.64,1);}
+.panel-overlay.open .panel{transform:translateY(0);}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:2px solid var(--cream-dark);flex-shrink:0;}
+.panel-title{font-family:'Fredoka One',cursive;font-size:22px;color:var(--text-main);}
+.panel-close{background:var(--ui-frame);color:white;border:none;border-radius:8px;padding:4px 12px;font-family:'Fredoka One',cursive;font-size:15px;cursor:pointer;}
+.panel-body{flex:1;overflow-y:auto;padding:16px 20px;}
+
+/* Upgrade cards */
+.upgrade-section{margin-bottom:20px;}
+.upgrade-section-title{font-family:'Fredoka One',cursive;font-size:17px;color:var(--text-mid);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.upg-card{background:white;border:2.5px solid var(--bark-light);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;box-shadow:2px 2px 0 var(--bark-light);}
+.upg-card:hover{transform:translateY(-1px);box-shadow:3px 3px 0 var(--bark-light);}
+.upg-card.purchased{background:var(--cream-dark);opacity:.6;cursor:default;}
+.upg-card.purchased:hover{transform:none;}
+.upg-card.cant-afford{opacity:.5;cursor:not-allowed;}
+.upg-card.cant-afford:hover{transform:none;}
+.upg-icon{font-size:28px;flex-shrink:0;}
+.upg-info{flex:1;}
+.upg-name{font-family:'Fredoka One',cursive;font-size:15px;color:var(--text-main);}
+.upg-desc{font-size:12px;color:var(--text-light);margin-top:2px;line-height:1.4;}
+.upg-cost{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;color:var(--aqua-deep);flex-shrink:0;text-align:right;}
+.upg-cost.purchased{color:var(--mint-dark);}
+
+/* Helpers panel */
+.helper-card{background:white;border:2.5px solid var(--ui-frame);border-radius:14px;padding:14px;margin-bottom:10px;}
+.helper-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.helper-card-icon{font-size:30px;}
+.helper-card-name{font-family:'Fredoka One',cursive;font-size:17px;color:var(--text-main);}
+.helper-card-rate{font-family:'Space Mono',monospace;font-size:11px;color:var(--aqua-deep);}
+.helper-upg-btn{background:var(--aqua-mid);border:2px solid var(--aqua-deep);border-radius:10px;padding:7px 14px;font-family:'Fredoka One',cursive;font-size:14px;color:white;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:6px;}
+.helper-upg-btn:hover{background:var(--aqua-deep);}
+.helper-upg-btn.locked{background:var(--cream-dark);color:var(--text-light);border-color:var(--bark-light);cursor:not-allowed;}
+
+/* Stats */
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1.5px solid var(--cream-dark);font-size:14px;}
+.stat-label{color:var(--text-mid);font-weight:700;}
+.stat-val{font-family:'Space Mono',monospace;font-size:13px;color:var(--aqua-deep);}
+
+/* Toast */
+#toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--ui-frame);color:white;font-family:'Fredoka One',cursive;font-size:15px;padding:10px 22px;border-radius:20px;z-index:200;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Drift screen */
+#drift-screen{position:fixed;inset:0;background:#030810;z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;color:white;}
+#drift-screen h2{font-family:'Fredoka One',cursive;font-size:42px;color:var(--axo-pink);text-shadow:0 0 40px rgba(249,184,216,.6);margin-bottom:16px;}
+#drift-screen p{font-size:15px;color:var(--aqua-light);text-align:center;max-width:340px;line-height:1.7;margin-bottom:30px;}
+#drift-confirm{background:var(--pearl);border:3px solid white;border-radius:20px;padding:12px 32px;font-family:'Fredoka One',cursive;font-size:20px;color:white;cursor:pointer;margin:8px;}
+#drift-cancel{background:transparent;border:2px solid rgba(255,255,255,.3);border-radius:20px;padding:10px 28px;font-family:'Fredoka One',cursive;font-size:16px;color:rgba(255,255,255,.6);cursor:pointer;margin:8px;}
+
+/* New Game / Personality reveal */
+#name-screen{position:fixed;inset:0;background:linear-gradient(180deg,#0A1A2E,#163A58);z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+#name-screen h1{font-family:'Fredoka One',cursive;font-size:52px;color:var(--axo-pink);text-shadow:0 0 40px rgba(249,184,216,.5);margin-bottom:8px;}
+#name-screen p{color:var(--aqua-light);font-size:15px;text-align:center;margin-bottom:24px;}
+#name-input{background:rgba(255,255,255,.15);border:3px solid rgba(255,255,255,.4);border-radius:16px;padding:12px 20px;font-family:'Fredoka One',cursive;font-size:22px;color:white;width:100%;max-width:320px;text-align:center;outline:none;margin-bottom:16px;}
+#name-input::placeholder{color:rgba(255,255,255,.4);}
+#start-btn{background:var(--coral);border:3px solid var(--coral-dark);border-radius:20px;padding:14px 36px;font-family:'Fredoka One',cursive;font-size:22px;color:white;cursor:pointer;box-shadow:0 4px 0 var(--coral-dark);}
+#start-btn:active{transform:translateY(2px);box-shadow:0 2px 0 var(--coral-dark);}
+
+/* Compendium / Achievements simple view */
+.comp-entry{background:white;border:2px solid var(--bark-light);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.comp-entry .comp-icon{font-size:24px;}
+.comp-entry .comp-info strong{display:block;font-size:14px;font-family:'Fredoka One',cursive;color:var(--text-main);}
+.comp-entry .comp-info span{font-size:12px;color:var(--text-light);}
+
+/* Personality reveal */
+#personality-screen{position:fixed;inset:0;background:rgba(10,24,46,.96);z-index:90;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;}
+#personality-screen .pers-card-big{background:var(--cream);border:4px solid var(--ui-frame);border-radius:24px;padding:30px;text-align:center;max-width:340px;box-shadow:8px 8px 0 var(--ui-frame);}
+#personality-screen h3{font-family:'Fredoka One',cursive;font-size:28px;margin-bottom:8px;}
+#personality-screen p{font-size:14px;color:var(--text-mid);line-height:1.6;margin-bottom:20px;}
+#personality-screen button{background:var(--coral);border:3px solid var(--coral-dark);border-radius:16px;padding:12px 28px;font-family:'Fredoka One',cursive;font-size:18px;color:white;cursor:pointer;}
+
+/* Screen shake */
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.shake{animation:shake .3s ease-out;}
+
+/* Milestone flash */
+#milestone-flash{position:fixed;inset:0;pointer-events:none;z-index:150;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s;}
+#milestone-flash.show{opacity:1;}
+.milestone-badge{background:var(--bubble-yellow);border:4px solid var(--bark);border-radius:20px;padding:16px 28px;text-align:center;box-shadow:6px 6px 0 var(--bark);transform:scale(.8);transition:transform .3s;}
+.milestone-badge.show{transform:scale(1);}
+.milestone-badge h3{font-family:'Fredoka One',cursive;font-size:22px;color:var(--text-main);}
+.milestone-badge p{font-size:14px;color:var(--text-mid);margin-top:4px;}
+
+/* Responsive */
+@media(min-width:640px){
+  #game{max-width:480px;margin:0 auto;border-left:2px solid rgba(255,255,255,.1);border-right:2px solid rgba(255,255,255,.1);}
+  #axo-svg{width:220px;height:200px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading">
+  <div style="font-size:60px;margin-bottom:16px;">🫧</div>
+  <h1>AxoLottaFun</h1>
+  <p>filling the tank...</p>
+</div>
+
+<!-- Name screen -->
+<div id="name-screen" style="display:none;">
+  <div style="font-size:80px;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(249,184,216,.6));">🥚</div>
+  <h1>AxoLottaFun</h1>
+  <p>"Raise your very own wet, sentient, marshmallow."</p>
+  <input id="name-input" type="text" placeholder="Name your axolotl..." maxlength="16">
+  <button id="start-btn">Start Adventure! 🫧</button>
+</div>
+
+<!-- Personality reveal -->
+<div id="personality-screen">
+  <div class="pers-card-big">
+    <div style="font-size:48px;margin-bottom:12px;" id="pers-icon">🫧</div>
+    <h3 id="pers-name">Bubbly</h3>
+    <p id="pers-desc">Your axolotl has revealed its true self!</p>
+    <button onclick="closePersonality()">I love them! 💕</button>
+  </div>
+</div>
+
+<!-- Drift screen -->
+<div id="drift-screen">
+  <div style="font-size:64px;margin-bottom:16px;">🌌</div>
+  <h2>The Great Drift</h2>
+  <p id="drift-text">Your Legend axolotl is ready to drift into a new life cycle, carrying wisdom forward. This is the cycle of all things.</p>
+  <div style="margin:10px 0;font-family:'Space Mono',monospace;font-size:13px;color:var(--aqua-light);">Pearls to earn: <span id="drift-pearl-preview" style="color:var(--bubble-yellow);font-size:16px;">?</span></div>
+  <div style="display:flex;flex-wrap:wrap;justify-content:center;">
+    <button id="drift-confirm">Begin the Drift ✨</button>
+    <button id="drift-cancel">Not yet</button>
+  </div>
+</div>
+
+<!-- Milestone flash -->
+<div id="milestone-flash">
+  <div class="milestone-badge" id="milestone-badge">
+    <h3 id="milestone-title">🏆 Milestone!</h3>
+    <p id="milestone-desc">Something great happened</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- MAIN GAME -->
+<div id="game" style="display:none;">
+
+  <!-- HUD Top -->
+  <div id="hud-top">
+    <div class="hud-pill">
+      🫧 <span class="val" id="bubble-count">0</span>
+    </div>
+    <div class="hud-pill bps">
+      <span class="val" id="bps-display">0 B/s</span>
+    </div>
+    <div id="mood-hud">
+      <span class="mood-label" id="mood-emoji">😊</span>
+      <div id="mood-bar-wrap"><div id="mood-bar" style="width:80%"></div></div>
+      <span style="font-family:'Space Mono',monospace;font-size:10px;color:rgba(255,255,255,.6);" id="mood-pct">80%</span>
+    </div>
+    <div class="hud-pill" style="cursor:pointer;" onclick="openPanel('stats')">
+      <span id="day-display">📅 Day 1</span>
+    </div>
+  </div>
+
+  <!-- Tank Scene -->
+  <div id="tank">
+    <div id="tank-bg">
+      <div id="caustics"></div>
+    </div>
+    <div id="water-surface"></div>
+    <canvas id="bubbles-canvas"></canvas>
+    <canvas id="float-canvas"></canvas>
+    <div id="particles"></div>
+
+    <!-- Helpers rendered here -->
+    <div id="helpers-container"></div>
+
+    <!-- Axolotl -->
+    <div id="axo-container">
+      <svg id="axo-svg" width="180" height="165" viewBox="0 0 200 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tail -->
+        <ellipse cx="162" cy="112" rx="42" ry="20" fill="#F9B8D8" stroke="#D47AA8" stroke-width="3" transform="rotate(-12 162 112)"/>
+        <ellipse cx="176" cy="106" rx="28" ry="13" fill="#FCD0E8" stroke="#D47AA8" stroke-width="2" transform="rotate(-18 176 106)"/>
+        <!-- Body -->
+        <ellipse cx="96" cy="110" rx="58" ry="44" fill="#F9B8D8" stroke="#D47AA8" stroke-width="3"/>
+        <!-- Belly -->
+        <ellipse cx="96" cy="118" rx="36" ry="26" fill="#FFE8F4" stroke="#D47AA8" stroke-width="1.5"/>
+        <!-- Head -->
+        <ellipse cx="70" cy="80" rx="48" ry="44" fill="#F9B8D8" stroke="#D47AA8" stroke-width="3"/>
+        <!-- Gill fronds LEFT -->
+        <g id="gill-l" style="transform-origin:38px 60px">
+          <ellipse cx="28" cy="50" rx="9" ry="26" fill="#FF8EC0" stroke="#D47AA8" stroke-width="2.5" transform="rotate(-22 28 50)"/>
+          <ellipse cx="18" cy="56" rx="7" ry="21" fill="#FFA8CC" stroke="#D47AA8" stroke-width="2" transform="rotate(-32 18 56)"/>
+          <ellipse cx="34" cy="40" rx="7" ry="22" fill="#FF8EC0" stroke="#D47AA8" stroke-width="2" transform="rotate(-12 34 40)"/>
+        </g>
+        <!-- Gill fronds RIGHT -->
+        <g id="gill-r" style="transform-origin:116px 60px">
+          <ellipse cx="116" cy="50" rx="9" ry="26" fill="#FF8EC0" stroke="#D47AA8" stroke-width="2.5" transform="rotate(22 116 50)"/>
+          <ellipse cx="126" cy="56" rx="7" ry="21" fill="#FFA8CC" stroke="#D47AA8" stroke-width="2" transform="rotate(32 126 56)"/>
+          <ellipse cx="110" cy="40" rx="7" ry="22" fill="#FF8EC0" stroke="#D47AA8" stroke-width="2" transform="rotate(12 110 40)"/>
+        </g>
+        <!-- Eyes -->
+        <g id="eye-l">
+          <circle cx="55" cy="72" r="13" fill="white" stroke="#D47AA8" stroke-width="2.5"/>
+          <circle cx="55" cy="73" r="8" fill="#1A1A2A"/>
+          <circle cx="52" cy="70" r="3" fill="white"/>
+        </g>
+        <g id="eye-r">
+          <circle cx="87" cy="72" r="13" fill="white" stroke="#D47AA8" stroke-width="2.5"/>
+          <circle cx="87" cy="73" r="8" fill="#1A1A2A"/>
+          <circle cx="84" cy="70" r="3" fill="white"/>
+        </g>
+        <!-- Nose dots -->
+        <circle cx="68" cy="88" r="2.5" fill="#D47AA8"/>
+        <circle cx="75" cy="88" r="2.5" fill="#D47AA8"/>
+        <!-- Smile -->
+        <path id="axo-mouth" d="M56 92 Q71 104 86 92" stroke="#D47AA8" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- Blush -->
+        <ellipse id="blush-l" cx="43" cy="84" rx="9" ry="6" fill="#FF8EC0" opacity=".45"/>
+        <ellipse id="blush-r" cx="99" cy="84" rx="9" ry="6" fill="#FF8EC0" opacity=".45"/>
+        <!-- Front legs -->
+        <ellipse cx="50" cy="148" rx="13" ry="10" fill="#F9B8D8" stroke="#D47AA8" stroke-width="2.5" transform="rotate(-28 50 148)"/>
+        <ellipse cx="42" cy="158" rx="15" ry="7" fill="#F9B8D8" stroke="#D47AA8" stroke-width="2"/>
+        <ellipse cx="138" cy="148" rx="13" ry="10" fill="#F9B8D8" stroke="#D47AA8" stroke-width="2.5" transform="rotate(28 138 148)"/>
+        <ellipse cx="146" cy="158" rx="15" ry="7" fill="#F9B8D8" stroke="#D47AA8" stroke-width="2"/>
+        <!-- Crown (shows at Elder+) -->
+        <g id="axo-crown" style="display:none">
+          <polygon points="35,38 42,20 49,35" fill="var(--bubble-yellow)" stroke="#8A6A00" stroke-width="1.5"/>
+          <polygon points="49,35 56,18 63,35" fill="var(--bubble-yellow)" stroke="#8A6A00" stroke-width="1.5"/>
+          <polygon points="63,35 70,20 77,35" fill="var(--bubble-yellow)" stroke="#8A6A00" stroke-width="1.5"/>
+        </g>
+        <!-- Glow ring (Radiant mood) -->
+        <circle id="axo-glow" cx="71" cy="100" r="70" fill="none" stroke="rgba(255,224,130,0)" stroke-width="8" style="filter:blur(8px)"/>
+      </svg>
+    </div>
+
+    <!-- Substrate -->
+    <div id="substrate"></div>
+
+    <!-- Stage label -->
+    <div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:9;">
+      <div style="background:rgba(10,24,46,.7);border:1.5px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-family:'Fredoka One',cursive;font-size:13px;color:rgba(255,255,255,.8);" id="stage-label">🥚 Egg</div>
+    </div>
+
+    <!-- Name label -->
+    <div style="position:absolute;bottom:88px;left:50%;transform:translateX(-50%);z-index:9;">
+      <div style="background:rgba(255,255,255,.9);border:2px solid var(--ui-frame);border-radius:20px;padding:3px 14px;font-family:'Fredoka One',cursive;font-size:14px;color:var(--text-main);box-shadow:2px 2px 0 var(--ui-frame);" id="axo-name-label">?</div>
+    </div>
+  </div>
+
+  <!-- HUD Bottom -->
+  <div id="hud-bottom">
+    <div class="needs-row">
+      <div class="need-item">
+        <div class="need-label">🍤 <span>Hunger</span><span class="need-val" id="hunger-val">100</span></div>
+        <div class="need-bar-outer"><div class="need-bar-inner" id="hunger-bar" style="width:100%;background:var(--need-hunger)"></div></div>
+      </div>
+      <div class="need-item">
+        <div class="need-label">💕 <span>Happy</span><span class="need-val" id="happy-val">100</span></div>
+        <div class="need-bar-outer"><div class="need-bar-inner" id="happy-bar" style="width:100%;background:var(--need-happy)"></div></div>
+      </div>
+      <div class="need-item">
+        <div class="need-label">🧼 <span>Clean</span><span class="need-val" id="clean-val">100</span></div>
+        <div class="need-bar-outer"><div class="need-bar-inner" id="clean-bar" style="width:100%;background:var(--need-clean)"></div></div>
+      </div>
+      <div class="need-item">
+        <div class="need-label">🌿 <span>Enrich</span><span class="need-val" id="enrich-val">100</span></div>
+        <div class="need-bar-outer"><div class="need-bar-inner" id="enrich-bar" style="width:100%;background:var(--need-enrich)"></div></div>
+      </div>
+    </div>
+    <div class="actions-row">
+      <button class="action-btn" id="btn-feed" onclick="doFeed()">
+        <span class="icon">🍤</span><span>Feed</span>
+      </button>
+      <button class="action-btn" id="btn-clean" onclick="doClean()">
+        <span class="icon">🧹</span><span>Clean</span>
+      </button>
+      <button class="action-btn" id="btn-play" onclick="doPlay()">
+        <span class="icon">🫧</span><span>Play</span>
+      </button>
+      <button class="action-btn" onclick="openPanel('upgrades')">
+        <span class="icon">⬆️</span><span>Upgrades</span>
+      </button>
+      <button class="action-btn" onclick="openPanel('helpers')">
+        <span class="icon">🐌</span><span>Helpers</span>
+      </button>
+      <button class="action-btn" onclick="openPanel('compendium')">
+        <span class="icon">📖</span><span>Book</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- PANELS -->
+<!-- Upgrades Panel -->
+<div class="panel-overlay" id="panel-upgrades" onclick="closePanel('upgrades')">
+  <div class="panel" onclick="e=>e.stopPropagation()">
+    <div class="panel-header">
+      <div class="panel-title">⬆️ Upgrades</div>
+      <button class="panel-close" onclick="closePanel('upgrades')">✕ Close</button>
+    </div>
+    <div class="panel-body" id="upgrades-body"></div>
+  </div>
+</div>
+
+<!-- Helpers Panel -->
+<div class="panel-overlay" id="panel-helpers" onclick="closePanel('helpers')">
+  <div class="panel" onclick="e=>e.stopPropagation()">
+    <div class="panel-header">
+      <div class="panel-title">🐌 Aquatic Helpers</div>
+      <button class="panel-close" onclick="closePanel('helpers')">✕ Close</button>
+    </div>
+    <div class="panel-body" id="helpers-body"></div>
+  </div>
+</div>
+
+<!-- Compendium Panel -->
+<div class="panel-overlay" id="panel-compendium" onclick="closePanel('compendium')">
+  <div class="panel" onclick="e=>e.stopPropagation()">
+    <div class="panel-header">
+      <div class="panel-title">📖 Compendium</div>
+      <button class="panel-close" onclick="closePanel('compendium')">✕ Close</button>
+    </div>
+    <div class="panel-body" id="compendium-body"></div>
+  </div>
+</div>
+
+<!-- Stats Panel -->
+<div class="panel-overlay" id="panel-stats" onclick="closePanel('stats')">
+  <div class="panel" onclick="e=>e.stopPropagation()">
+    <div class="panel-header">
+      <div class="panel-title">📊 Stats & Info</div>
+      <button class="panel-close" onclick="closePanel('stats')">✕ Close</button>
+    </div>
+    <div class="panel-body" id="stats-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  AXOLOTTAFUN — GAME ENGINE
+//  © 2026 Playology Entertainment
+// ═══════════════════════════════════════════════════════
+
+const SAVE_KEY = 'axolottafun_save_v1';
+
+// ── DEFINITIONS ──────────────────────────────────────────
+
+const STAGES = [
+  { id:'EGG',      label:'🥚 Egg',       minDays:0,  bpsBonus:1.0,  clickBonus:1.0  },
+  { id:'HATCHLING',label:'🐣 Hatchling', minDays:1,  bpsBonus:1.8,  clickBonus:1.5  },
+  { id:'JUVENILE', label:'🦎 Juvenile',  minDays:4,  bpsBonus:4.2,  clickBonus:3.0  },
+  { id:'ADULT',    label:'🐊 Adult',     minDays:11, bpsBonus:12,   clickBonus:8.0  },
+  { id:'ELDER',    label:'✨ Elder',     minDays:26, bpsBonus:40,   clickBonus:22   },
+  { id:'LEGEND',   label:'🌟 Legend',    minDays:41, bpsBonus:180,  clickBonus:80   }
+];
+
+const PERSONALITIES = {
+  BUBBLY:    { name:'🫧 Bubbly',    color:'#FFE0F0', desc:'Extroverted, expressive, enthusiastic! Your axolotl thinks everything is AMAZING.', bonus:'Click value +25%, Critical Clicks every 8 hits' },
+  BASHFUL:   { name:'🌙 Bashful',   color:'#E8F0FF', desc:'Gentle, thoughtful, quietly loving. Works hardest when no one\'s watching.', bonus:'Offline rate +40%, Pet cuddles give 3× happiness' },
+  STUDIOUS:  { name:'📚 Studious',  color:'#F0F8E8', desc:'Methodical, efficient, secretly nerdy. Has opinions about your upgrade path.', bonus:'Upgrade costs -10%, Helper output +15%' },
+  MISCHIEVOUS:{ name:'🎭 Mischievous',color:'#FFF8E0',desc:'Chaotic, playful, unpredictably generous. Has claimed to eat a shoe.', bonus:'5% chance of Bubble Surge, Activity cooldowns -20%' }
+};
+
+const UPGRADES = [
+  // FEEDING
+  { id:'premiumPellet',   cat:'feeding',    name:'Premium Pellet Mix',       icon:'🦐', cost:100,     desc:'Each feeding restores +10 extra Hunger. A delicacy.',         effect:()=>{ G.feedBonus+=10; }, mult:false },
+  { id:'algaeWafer',      cat:'feeding',    name:'Algae Wafer Supplement',   icon:'🌿', cost:320,     desc:'Hunger drains 2pts/hr slower. Snack between meals.',          effect:()=>{ G.drainRates.hunger=Math.max(1,G.drainRates.hunger-2); }, mult:false },
+  { id:'bubbleBrine',     cat:'feeding',    name:'Bubble-Infused Brine Shrimp',icon:'🫧',cost:1200,  desc:'B/s ×1.15 when Hunger > 80%. High quality food = high quality Bubbles.',effect:()=>{ G.feedMult*=1.15; }, mult:true },
+  { id:'bloodworm',       cat:'feeding',    name:'Bloodworm Luxury Pack',    icon:'🍖', cost:4500,    desc:'Feeding restores 2.5× more Hunger. Axolotl spins with joy.',  effect:()=>{ G.feedBonus*=2.5; }, mult:true },
+  { id:'spirulina',       cat:'feeding',    name:'Spirulina Growth Booster', icon:'🌾', cost:18000,   desc:'Global B/s ×1.25 whenever Hunger > 60%.',                    effect:()=>{ G.feedMult*=1.25; }, mult:true },
+  { id:'autoDispenser',   cat:'feeding',    name:'Automatic Food Dispenser', icon:'🏪', cost:300000,  desc:'Auto-feeds every 2 real hours. Hunger never falls below 25.', effect:()=>{ G.autoFeed=true; }, mult:false },
+  { id:'cosmicKrill',     cat:'feeding',    name:'Cosmic Krill Formula',     icon:'🌟', cost:2500000, desc:'Global B/s ×1.5 when Hunger > 90%. The axolotl shimmers.',   effect:()=>{ G.feedMult*=1.5; }, mult:true },
+  // HABITAT
+  { id:'basicFilter',     cat:'habitat',    name:'Basic Filter Unit',        icon:'🔵', cost:80,      desc:'Cleanliness drains 1pt/hr slower. The axolotl named it Gerald.',effect:()=>{ G.drainRates.cleanliness=Math.max(1,G.drainRates.cleanliness-1); }, mult:false },
+  { id:'ledLight',        cat:'habitat',    name:'LED Spectrum Light Bar',   icon:'💡', cost:450,     desc:'B/s ×1.10 during daytime hours (7AM-7PM).',                  effect:()=>{ G.habitatMult*=1.10; }, mult:true },
+  { id:'thermometer',     cat:'habitat',    name:'Precision Thermometer',    icon:'🌡️', cost:1800,   desc:'All need drains -5% with 3+ decorations placed.',            effect:()=>{ G.thermoBonus=true; }, mult:false },
+  { id:'premiumSub',      cat:'habitat',    name:'Premium Substrate Layer',  icon:'🪨', cost:6000,    desc:'Helper Bubbles ×1.20. Snorkel moves 30% faster (visually).',  effect:()=>{ G.helperMult*=1.20; }, mult:true },
+  { id:'circPump',        cat:'habitat',    name:'Powerhead Circulation Pump',icon:'🌊',cost:20000,  desc:'All B/s ×1.18. Adds beautiful water current animation.',      effect:()=>{ G.habitatMult*=1.18; }, mult:true },
+  { id:'ditherFish',      cat:'habitat',    name:'Dither Fish School',       icon:'🐠', cost:80000,   desc:'5 tiny fish appear in background. Enrichment drains 2pt/hr slower.',effect:()=>{ G.drainRates.enrichment=Math.max(0.5,G.drainRates.enrichment-2); renderHelpers(); }, mult:false },
+  { id:'waterMonitor',    cat:'habitat',    name:'Water Quality Monitor',    icon:'🔬', cost:350000,  desc:'Global ×1.12 when all needs > 70%.',                         effect:()=>{ G.habitatMult*=1.12; }, mult:true },
+  // ENRICHMENT
+  { id:'floatBall',       cat:'enrichment', name:'Floating Ball Toy',        icon:'🎱', cost:150,     desc:'Enrichment drains 1pt/hr slower. Axolotl headbutts it constantly.',effect:()=>{ G.drainRates.enrichment=Math.max(0.5,G.drainRates.enrichment-1); }, mult:false },
+  { id:'puzzleFeeder',    cat:'enrichment', name:'Enrichment Puzzle Feeder', icon:'🧩', cost:600,     desc:'Activities give +5 Enrichment bonus. Learning to eat is learning.',effect:()=>{ G.actEnrichBonus+=5; }, mult:false },
+  { id:'tinyLibrary',     cat:'enrichment', name:'Tiny Library Corner',      icon:'📚', cost:2500,    desc:'Studious bonus ×1.5 if applicable. Personality Journal early.',effect:()=>{ G.libraryUnlocked=true; }, mult:false },
+  { id:'musicPlayer',     cat:'enrichment', name:'Ambient Music Player',     icon:'🎵', cost:9000,    desc:'Happiness drains 2pt/hr slower. B/s ×1.08.',                 effect:()=>{ G.drainRates.happiness=Math.max(0.5,G.drainRates.happiness-2); G.enrichMult*=1.08; }, mult:true },
+  { id:'currentSwirl',    cat:'enrichment', name:'Current Swirl Generator',  icon:'🌀', cost:35000,   desc:'All activities give +10% more need restoration.',            effect:()=>{ G.activityBonus*=1.10; }, mult:true },
+  { id:'trophyShelf',     cat:'enrichment', name:'Trophy Shelf',             icon:'🏆', cost:15000000,desc:'Each achievement unlocked adds +0.5% to global B/s permanently.',effect:()=>{ G.trophyShelfUnlocked=true; }, mult:false },
+  // AXOLOTL SELF
+  { id:'enhancedGills',   cat:'axolotl',    name:'Enhanced Gill Fronds',     icon:'🫧', cost:500,     desc:'B/s ×1.15. Click value ×1.10. More expressive gill fronds.',   effect:()=>{ G.globalMult*=1.15; G.clickMult*=1.10; animateGillFlare(); }, mult:true },
+  { id:'regenMeta',       cat:'axolotl',    name:'Regenerative Metabolism',  icon:'💪', cost:2000,    desc:'All need drain rates -10% globally. Biology extended to feelings.',effect:()=>{ G.drainRates.hunger*=0.9; G.drainRates.happiness*=0.9; G.drainRates.cleanliness*=0.9; G.drainRates.enrichment*=0.9; }, mult:false },
+  { id:'percGaze',        cat:'axolotl',    name:'Perceptive Gaze',          icon:'👁️', cost:8000,   desc:'Treasure Hunt yields ×1.5 Bubbles. Eyes sparkle permanently.',  effect:()=>{ G.treasureMult*=1.5; }, mult:true },
+  { id:'bubbleBreath',    cat:'axolotl',    name:'Bubble Breath Mastery',    icon:'🌊', cost:30000,   desc:'Passive B/s ×1.25. Produces more economically valuable bubbles.',effect:()=>{ G.globalMult*=1.25; }, mult:true },
+  { id:'neotenOpt',       cat:'axolotl',    name:'Neoteny Optimization',     icon:'🦎', cost:120000,  desc:'Lifecycle B/s bonuses increased by +20%.',                   effect:()=>{ G.stageBoostExtra*=1.20; }, mult:true },
+  { id:'genomePro',       cat:'axolotl',    name:'Axolotl Genome Project',   icon:'🧬', cost:500000,  desc:'All multiplicative upgrades gain ×1.05 additional. Adds up.',   effect:()=>{ G.globalMult*=1.05; }, mult:true },
+  { id:'radiantAura',     cat:'axolotl',    name:'Radiant Aura Glow',        icon:'💫', cost:10000000,desc:'B/s ×1.30. Bioluminescent glow at Radiant mood. Beautiful.',    effect:()=>{ G.globalMult*=1.30; G.radiantAura=true; }, mult:true },
+  { id:'legendPotential', cat:'axolotl',    name:'Legend Potential Unlocked',icon:'🌌', cost:500000000,desc:'All Axolotl Upgrades ×1.35. Unlocks Elder→Legend transition!', effect:()=>{ G.globalMult*=1.35; G.legendUnlocked=true; }, mult:true },
+];
+
+const HELPERS = [
+  { id:'snorkel',    name:'Snorkel the Snail',      icon:'🐌', baseBps:1,    unlockCost:100,    upgradeCosts:[200,500,2000],      upgradeMults:[2,5,12],     desc:'Slow, methodical. Has tiny diving mask.', x:15 },
+  { id:'shrimply',   name:'Shrimply the Shrimp',    icon:'🦐', baseBps:8,    unlockCost:600,    upgradeCosts:[1200,4000,18000],   upgradeMults:[3,6,15],     desc:'Hyperactive. Darts around. Best friends with Snorkel.', x:78 },
+  { id:'clawdia',    name:'Clawdia the Crab',       icon:'🦀', baseBps:47,   unlockCost:4000,   upgradeCosts:[8000,25000,100000], upgradeMults:[4,9,20],     desc:'Businesslike. Carries a tiny briefcase.', x:25 },
+  { id:'puffington', name:'Puffington the Pufferfish',icon:'🐡',baseBps:260, unlockCost:25000,  upgradeCosts:[50000,150000,600000],upgradeMults:[5,11,28],   desc:'Accidentally inflates when startled. Sweet.', x:65 },
+  { id:'inky',       name:'Inky the Squid',         icon:'🦑', baseBps:1400, unlockCost:150000, upgradeCosts:[300000,900000,4000000],upgradeMults:[6,14,35], desc:'Paints murals on tank glass. Artistic.', x:42 },
+  { id:'oracle',     name:'Oracle the Octopus',     icon:'🐙', baseBps:9800, unlockCost:1200000,upgradeCosts:[2500000,8000000,30000000],upgradeMults:[7,18,50],desc:'Ancient. All-knowing. Rarely visible.', x:55 },
+];
+
+const ACHIEVEMENTS = [
+  { id:'first_bubble',  name:'First Bubble',     desc:'Generate your first Bubble',        check:g=>g.totalBubblesAllTime>=1,    reward:{bubbles:10},   tier:0 },
+  { id:'fed_happy',     name:'Fed & Happy',       desc:'Feed your axolotl for the first time',check:g=>g.feedCount>=1,            reward:{bubbles:50},   tier:0 },
+  { id:'first_friend',  name:'First Friend',      desc:'Unlock Snorkel the Snail',           check:g=>g.helpers.snorkel&&g.helpers.snorkel.unlocked,reward:{scales:1},tier:0},
+  { id:'click_happy',   name:'Click Happy',       desc:'Make 100 total clicks',              check:g=>g.totalClicks>=100,          reward:{bubbles:100},  tier:0 },
+  { id:'home_tank',     name:'Home Sweet Tank',   desc:'Unlock your first upgrade',          check:g=>g.totalUpgrades>=1,          reward:{scales:1},     tier:0 },
+  { id:'million',       name:'The First Million', desc:'Accumulate 1 million total Bubbles', check:g=>g.totalBubblesAllTime>=1e6,  reward:{scales:3},     tier:1 },
+  { id:'personality',   name:'Personality!',      desc:'Receive your Personality Journal entry',check:g=>g.personality!==null,    reward:{scales:2},     tier:1 },
+  { id:'juvenile',      name:'Juvenile Joy',       desc:'Reach the Juvenile lifecycle stage', check:g=>STAGES.findIndex(s=>s.id===g.stage)>=2,reward:{scales:2},tier:1},
+  { id:'adult',         name:'Adult Achievement',  desc:'Reach the Adult lifecycle stage',    check:g=>STAGES.findIndex(s=>s.id===g.stage)>=3,reward:{scales:5},tier:2},
+  { id:'full_crew',     name:'The Full Crew',      desc:'Unlock all 6 Helpers',               check:g=>HELPERS.every(h=>g.helpers[h.id]&&g.helpers[h.id].unlocked),reward:{scales:5},tier:1},
+  { id:'streak7',       name:'Streak of Seven',   desc:'Log in 7 days in a row',             check:g=>g.loginStreak>=7,            reward:{scales:5},     tier:1 },
+  { id:'mood_maestro',  name:'Mood Maestro',       desc:'Maintain Radiant mood for 3+ hours', check:g=>g.radiantHours>=3,          reward:{scales:3},     tier:1 },
+  { id:'upgrade100',    name:'Upgrade Obsessed',   desc:'Purchase 100 total upgrades (cumulative)',check:g=>g.totalUpgradesPurchased>=100,reward:{scales:6},tier:2},
+  { id:'legend_stage',  name:'Legend Stage',       desc:'Reach the Legend lifecycle stage',   check:g=>g.stage==='LEGEND',          reward:{scales:12},    tier:3 },
+  { id:'first_drift',   name:'The First Drift',    desc:'Complete your first Great Drift',    check:g=>g.totalDrifts>=1,            reward:{scales:15,pearls:15},tier:3},
+  { id:'drift5',        name:'The Drift Veteran',  desc:'Complete 5 Great Drifts',            check:g=>g.totalDrifts>=5,            reward:{scales:15},    tier:3 },
+  { id:'billion',       name:'The Billion Club',   desc:'Accumulate 1 trillion total Bubbles',check:g=>g.totalBubblesAllTime>=1e12, reward:{scales:8},     tier:2 },
+  { id:'encyclopedist', name:'The Encyclopedist',  desc:'Fill 100% of the Compendium',        check:g=>checkCompendiumFull(),       reward:{scales:20},    tier:4 },
+];
+
+// ── GAME STATE ────────────────────────────────────────────
+
+let G = newGameState();
+
+function newGameState() {
+  return {
+    version:'1.0',
+    axolotlName:'',
+    stage:'EGG',
+    personality:null,
+    personalityScores:{bubbly:0,bashful:0,studious:0,mischievous:0},
+    personalityRevealed:false,
+    bubbles:0,
+    scales:0,
+    pearls:0,
+    totalBubblesAllTime:0,
+    runStartTime:Date.now(),
+    lastSave:Date.now(),
+    runDays:0,
+    needs:{ hunger:100, happiness:100, cleanliness:100, enrichment:100 },
+    drainRates:{ hunger:8, happiness:5, cleanliness:6, enrichment:4 },
+    upgrades:{},
+    totalUpgrades:0,
+    totalUpgradesPurchased:0,
+    feedCount:0,
+    totalClicks:0,
+    totalDrifts:0,
+    loginStreak:1,
+    lastLoginDate:todayStr(),
+    radiantHours:0,
+    achievementsUnlocked:[],
+    compendiumEntries:[],
+    helpers:{},
+    cooldowns:{ feed:0, clean:0, play:0 },
+    activityCount:{ feed:0, clean:0, play:0 },
+    lastActivityDate:{ feed:'', clean:'', play:'' },
+    // computed / upgrade state
+    globalMult:1, clickMult:1, helperMult:1, habitatMult:1,
+    feedMult:1, feedBonus:40, enrichMult:1,
+    drainMult:1, stageBoostExtra:1,
+    activityBonus:1, actEnrichBonus:0, treasureMult:1,
+    autoFeed:false, thermoBonus:false, legendUnlocked:false,
+    libraryUnlocked:false, trophyShelfUnlocked:false, radiantAura:false,
+    clickCombo:0, lastClickTime:0, critClickCount:0,
+    sessionStart:Date.now(),
+    radiantStart:null,
+  };
+}
+
+// ── CANVAS SETUP ──────────────────────────────────────────
+
+let bubblesCanvas, bubblesCtx, floatCanvas, floatCtx;
+let bubbleParticles = [], floatTexts = [];
+
+function setupCanvases() {
+  bubblesCanvas = document.getElementById('bubbles-canvas');
+  floatCanvas   = document.getElementById('float-canvas');
+  resizeCanvases();
+  bubblesCtx = bubblesCanvas.getContext('2d');
+  floatCtx   = floatCanvas.getContext('2d');
+}
+
+function resizeCanvases() {
+  const tank = document.getElementById('tank');
+  const r = tank.getBoundingClientRect();
+  [bubblesCanvas, floatCanvas].forEach(c => { c.width = r.width; c.height = r.height; });
+}
+
+// ── BUBBLE PARTICLES ──────────────────────────────────────
+
+class BubbleParticle {
+  constructor(x, y, size, color, speedMult = 1) {
+    this.x = x; this.y = y;
+    this.size = size || (4 + Math.random() * 10);
+    this.color = color || `hsla(${190 + Math.random()*30},80%,70%,${0.5+Math.random()*.4})`;
+    this.vy = -(0.5 + Math.random() * 1.2) * speedMult;
+    this.vx = (Math.random() - 0.5) * 0.6;
+    this.life = 1;
+    this.decay = 0.004 + Math.random() * 0.004;
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    this.vx += (Math.random() - 0.5) * 0.05;
+    this.life -= this.decay;
+  }
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.life;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
+    ctx.strokeStyle = this.color;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.globalAlpha = this.life * 0.15;
+    ctx.fillStyle = this.color;
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+class FloatText {
+  constructor(x, y, text, color, size) {
+    this.x = x; this.y = y; this.text = text;
+    this.color = color || '#FFF082';
+    this.size = size || 16;
+    this.life = 1; this.vy = -1.2;
+  }
+  update() { this.y += this.vy; this.life -= 0.018; }
+  draw(ctx) {
+    ctx.save();
+    ctx.globalAlpha = this.life;
+    ctx.font = `700 ${this.size}px 'Fredoka One', cursive`;
+    ctx.fillStyle = this.color;
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(0,0,0,.3)';
+    ctx.lineWidth = 3;
+    ctx.strokeText(this.text, this.x, this.y);
+    ctx.fillText(this.text, this.x, this.y);
+    ctx.restore();
+  }
+}
+
+function spawnBubbles(x, y, count, big) {
+  for (let i = 0; i < count; i++) {
+    const ox = x + (Math.random()-0.5)*40;
+    const oy = y + (Math.random()-0.5)*20;
+    const size = big ? (12+Math.random()*16) : (3+Math.random()*8);
+    bubbleParticles.push(new BubbleParticle(ox, oy, size, null, big ? 1.5 : 1));
+  }
+}
+
+function spawnFloatText(x, y, text, color, size) {
+  floatTexts.push(new FloatText(x, y, text, color, size));
+}
+
+// ── ANIMATION LOOP ────────────────────────────────────────
+
+let lastFrame = 0;
+let idleAnim = null;
+
+function gameLoop(ts) {
+  const dt = Math.min((ts - lastFrame) / 1000, 0.1);
+  lastFrame = ts;
+
+  // Idle bubbles
+  if (Math.random() < 0.04) {
+    const tank = document.getElementById('tank');
+    const r = tank.getBoundingClientRect();
+    spawnBubbles(r.width * (0.1 + Math.random() * 0.8), r.height * 0.7, 1, false);
+  }
+
+  // Draw
+  bubblesCtx.clearRect(0, 0, bubblesCanvas.width, bubblesCanvas.height);
+  floatCtx.clearRect(0, 0, floatCanvas.width, floatCanvas.height);
+
+  bubbleParticles = bubbleParticles.filter(b => b.life > 0);
+  bubbleParticles.forEach(b => { b.update(); b.draw(bubblesCtx); });
+
+  floatTexts = floatTexts.filter(f => f.life > 0);
+  floatTexts.forEach(f => { f.update(); f.draw(floatCtx); });
+
+  // Axolotl glow at Radiant
+  const glow = document.getElementById('axo-glow');
+  const mood = computeMood();
+  if (G.radiantAura && mood >= 85) {
+    const pulse = 0.3 + 0.2 * Math.sin(ts / 600);
+    glow.setAttribute('stroke', `rgba(255,224,130,${pulse})`);
+  } else {
+    glow.setAttribute('stroke', 'rgba(255,224,130,0)');
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ── AXOLOTL ANIMATIONS ────────────────────────────────────
+
+let _currentIdleAnim = null;
+
+function getMoodAnimName(mood) {
+  if (mood >= 85) return 'axo-happy 2.4s ease-in-out infinite';
+  if (mood <= 24)  return 'axo-sad 3s ease-in-out infinite';
+  return 'axo-idle 2.8s ease-in-out infinite';
+}
+
+function startIdleAnim() {
+  const mood = computeMood();
+  const targetAnim = getMoodAnimName(mood);
+
+  // Only restart animation if the type has actually changed
+  if (targetAnim !== _currentIdleAnim) {
+    const axo = document.getElementById('axo-container');
+    _currentIdleAnim = targetAnim;
+    axo.style.animation = 'none';
+    // Force reflow so the browser registers the reset before re-applying
+    void axo.offsetWidth;
+    axo.style.animation = targetAnim;
+  }
+
+  updateMouth(mood);
+  updateGillColor(mood);
+}
+
+function forceRestartIdleAnim() {
+  // Called after action animations (spin, etc.) complete — always re-applies
+  const mood = computeMood();
+  const targetAnim = getMoodAnimName(mood);
+  const axo = document.getElementById('axo-container');
+  _currentIdleAnim = targetAnim;
+  axo.style.animation = 'none';
+  void axo.offsetWidth;
+  axo.style.animation = targetAnim;
+  updateMouth(mood);
+  updateGillColor(mood);
+}
+
+function updateMouth(mood) {
+  const mouth = document.getElementById('axo-mouth');
+  if (mood >= 65) mouth.setAttribute('d', 'M56 92 Q71 104 86 92'); // smile
+  else if (mood >= 45) mouth.setAttribute('d', 'M60 95 Q71 100 82 95'); // neutral
+  else mouth.setAttribute('d', 'M58 100 Q71 92 84 100'); // frown
+}
+
+function updateGillColor(mood) {
+  const gills = document.querySelectorAll('#gill-l ellipse, #gill-r ellipse');
+  let col = '#FF8EC0';
+  if (mood >= 85) col = '#FF60A0';
+  else if (mood <= 24) col = '#C0A8C0';
+  gills.forEach(g => g.setAttribute('fill', col));
+}
+
+function animateGillFlare() {
+  const gl = document.getElementById('gill-l');
+  const gr = document.getElementById('gill-r');
+  gl.style.animation = 'gill-flare .4s ease-out';
+  gr.style.animation = 'gill-flare .4s ease-out';
+  setTimeout(() => { gl.style.animation = ''; gr.style.animation = ''; }, 400);
+}
+
+function triggerHappy() {
+  const axo = document.getElementById('axo-container');
+  _currentIdleAnim = null; // invalidate so forceRestart always applies
+  axo.style.animation = 'axo-spin .6s ease-in-out';
+  animateGillFlare();
+  setTimeout(() => forceRestartIdleAnim(), 700);
+}
+
+function updateCrown() {
+  const crown = document.getElementById('axo-crown');
+  const si = STAGES.findIndex(s => s.id === G.stage);
+  crown.style.display = si >= 4 ? 'block' : 'none';
+}
+
+// ── GAME LOGIC ────────────────────────────────────────────
+
+function computeMood() {
+  const n = G.needs;
+  return (n.hunger*0.3 + n.happiness*0.35 + n.cleanliness*0.2 + n.enrichment*0.15);
+}
+
+function computeMoodMult(mood) {
+  return 0.4 + (mood / 100) * 1.6;
+}
+
+function computeBps() {
+  const stageIdx = STAGES.findIndex(s => s.id === G.stage);
+  const stage = STAGES[stageIdx];
+  const stageMult = stage.bpsBonus * G.stageBoostExtra;
+  const mood = computeMood();
+  const moodMult = computeMoodMult(mood);
+
+  // Helper total
+  let helperBps = 0;
+  HELPERS.forEach(h => {
+    const hs = G.helpers[h.id];
+    if (!hs || !hs.unlocked) return;
+    const lvl = hs.level || 0;
+    let rate = h.baseBps;
+    for (let i = 0; i < lvl; i++) rate *= h.upgradeMults[i];
+    helperBps += rate;
+  });
+
+  let bps = helperBps * G.helperMult;
+  bps *= stageMult;
+  bps *= moodMult;
+  bps *= G.globalMult;
+  bps *= G.habitatMult;
+  bps *= G.enrichMult;
+
+  // Feed bonus when hunger high
+  if (G.needs.hunger > 80) bps *= G.feedMult;
+
+  // All needs > 70: waterMonitor bonus
+  if (G.upgrades.waterMonitor && Object.values(G.needs).every(v=>v>70)) bps *= 1.12;
+
+  // Trophy shelf: 0.5% per achievement
+  if (G.trophyShelfUnlocked) bps *= (1 + G.achievementsUnlocked.length * 0.005);
+
+  // Personality
+  if (G.personality === 'STUDIOUS') bps *= 1.15;
+  if (G.personality === 'MISCHIEVOUS' && Math.random() < 0.0001) { bps *= 2; } // surge chance per tick
+
+  // LED: daytime
+  const hr = new Date().getHours();
+  if (G.upgrades.ledLight && hr >= 7 && hr < 19) bps *= 1.10;
+
+  // Drift bonuses
+  bps *= getDriftBps();
+
+  return Math.max(0.1, bps);
+}
+
+function getDriftBps() {
+  let m = 1;
+  if (G.driftTree) {
+    if (G.driftTree.ancientGills) m *= 2;
+    if (G.driftTree.gillFrondLegacy) m *= 1.5;
+    if (G.driftTree.infiniteWaters) m *= 2;
+    if (G.driftTree.wisdomOfThousands) {} // cost reduction, not bps
+  }
+  return m;
+}
+
+function computeClickValue() {
+  const stageIdx = STAGES.findIndex(s => s.id === G.stage);
+  return Math.max(1, Math.floor(STAGES[stageIdx].clickBonus * G.clickMult * getDriftBps()));
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+// ── TICK ─────────────────────────────────────────────────
+
+let lastTick = Date.now();
+
+function gameTick() {
+  const now = Date.now();
+  const dt = (now - lastTick) / 1000;
+  lastTick = now;
+
+  const bps = computeBps();
+  const earned = bps * dt;
+  G.bubbles += earned;
+  G.totalBubblesAllTime += earned;
+
+  // Drain needs
+  const drain = dt / 3600;
+  G.needs.hunger      = Math.max(0, G.needs.hunger      - G.drainRates.hunger      * drain);
+  G.needs.happiness   = Math.max(0, G.needs.happiness   - G.drainRates.happiness   * drain);
+  G.needs.cleanliness = Math.max(0, G.needs.cleanliness - G.drainRates.cleanliness * drain);
+  G.needs.enrichment  = Math.max(0, G.needs.enrichment  - G.drainRates.enrichment  * drain);
+
+  // Thermo bonus: all needs drain less with 3+ upgrades
+  if (G.thermoBonus && G.totalUpgrades >= 3) {
+    // already factored in via drain rates at purchase time
+  }
+
+  // Auto feed
+  if (G.autoFeed && G.needs.hunger < 25) G.needs.hunger = Math.min(100, G.needs.hunger + 30);
+
+  // Radiant hour tracking
+  const mood = computeMood();
+  if (mood >= 85) {
+    if (!G.radiantStart) G.radiantStart = now;
+    G.radiantHours = (now - G.radiantStart) / 3600000;
+  } else {
+    G.radiantStart = null;
+  }
+
+  // Run days
+  G.runDays = (now - G.runStartTime) / 86400000;
+
+  // Personality scoring (first 72hrs)
+  if (!G.personality && G.runDays < 3) {
+    // Sessions: check upgrade vs decoration preference
+    if (G.totalUpgrades > 0 && G.totalUpgrades % 3 === 0) G.personalityScores.studious += 0.01;
+  }
+
+  // Check lifecycle
+  checkLifecycle();
+
+  // Check personality reveal
+  if (!G.personality && G.runDays >= 3) revealPersonality();
+
+  // Drift check
+  checkDriftEligibility();
+
+  // Achievements
+  checkAchievements();
+
+  // Update UI
+  updateHUD(bps);
+}
+
+function checkLifecycle() {
+  const si = STAGES.findIndex(s => s.id === G.stage);
+  if (si >= STAGES.length - 1) return;
+  const next = STAGES[si + 1];
+  if (G.stage === 'ELDER' && !G.legendUnlocked) return;
+  if (G.runDays >= next.minDays) {
+    G.stage = next.id;
+    addCompendiumEntry(next.id.toLowerCase());
+    showToast(`✨ Your axolotl is now a ${next.label}!`);
+    triggerHappy();
+    updateCrown();
+    updateStageLabel();
+    // Milestone check
+    checkMilestones();
+  }
+}
+
+function revealPersonality() {
+  const s = G.personalityScores;
+  const entries = Object.entries(s);
+  entries.sort((a,b) => b[1] - a[1]);
+  G.personality = entries[0][0].toUpperCase();
+  G.personalityRevealed = true;
+  addCompendiumEntry('personality_' + G.personality.toLowerCase());
+  showPersonalityReveal();
+}
+
+function showPersonalityReveal() {
+  const p = PERSONALITIES[G.personality];
+  document.getElementById('pers-icon').textContent = p.name.split(' ')[0];
+  document.getElementById('pers-name').textContent = p.name;
+  document.getElementById('pers-desc').textContent = p.desc + '\n\n' + p.bonus;
+  document.getElementById('personality-screen').style.display = 'flex';
+}
+
+function closePersonality() {
+  document.getElementById('personality-screen').style.display = 'none';
+  showToast('Personality revealed! Check the Compendium 📖');
+}
+
+function checkMilestones() {
+  const lvl = G.totalUpgradesPurchased;
+  const milestones = [
+    { at:25,  title:'First Steps! 🌱',    desc:'You\'ve grown so much. +free decor vibes!' },
+    { at:50,  title:'Growing Pains! 🦎',  desc:'Axo is drawing you pictures now.' },
+    { at:75,  title:'Dedicated One! 💪',  desc:'Offline cap +2hr. You understand patience.' },
+    { at:100, title:'Bubble Baron! 👑',   desc:'B/s ×1.15 permanent. Reign begins.' },
+    { at:150, title:'Ancient Waters! 🌊', desc:'Helper rates ×1.25. They\'re inspired.' },
+    { at:200, title:'Infinite Tank! 🌌',  desc:'All multipliers ×1.10. Endless depths.' },
+  ];
+  milestones.forEach(m => {
+    if (lvl >= m.at && !G.upgrades['milestone_'+m.at]) {
+      G.upgrades['milestone_'+m.at] = true;
+      if (m.at === 100) G.globalMult *= 1.15;
+      if (m.at === 150) G.helperMult *= 1.25;
+      if (m.at === 200) G.globalMult *= 1.10;
+      flashMilestone(m.title, m.desc);
+    }
+  });
+}
+
+function checkDriftEligibility() {
+  if (G.stage === 'LEGEND' && G.legendUnlocked) {
+    const driftBtn = document.getElementById('btn-drift');
+    if (!driftBtn) {
+      // Add drift button
+      const br = document.querySelector('.actions-row');
+      if (br) {
+        const btn = document.createElement('button');
+        btn.className = 'action-btn';
+        btn.id = 'btn-drift';
+        btn.style.background = 'rgba(180,143,212,.3)';
+        btn.style.borderColor = 'var(--pearl)';
+        btn.onclick = openDriftScreen;
+        btn.innerHTML = '<span class="icon">🌌</span><span>Drift</span>';
+        br.appendChild(btn);
+      }
+    }
+  }
+}
+
+function checkAchievements() {
+  ACHIEVEMENTS.forEach(a => {
+    if (G.achievementsUnlocked.includes(a.id)) return;
+    if (a.check(G)) {
+      G.achievementsUnlocked.push(a.id);
+      addCompendiumEntry('ach_'+a.id);
+      if (a.reward.bubbles) G.bubbles += a.reward.bubbles;
+      if (a.reward.scales)  G.scales  += a.reward.scales;
+      if (a.reward.pearls)  G.pearls  += a.reward.pearls;
+      showToast(`🏆 Achievement: "${a.name}"! +${JSON.stringify(a.reward).replace(/[{}""]/g,'')}`);
+    }
+  });
+}
+
+function checkCompendiumFull() {
+  const total = STAGES.length + Object.keys(PERSONALITIES).length + ACHIEVEMENTS.length;
+  return G.compendiumEntries.length >= total * 0.9;
+}
+
+function addCompendiumEntry(id) {
+  if (!G.compendiumEntries.includes(id)) G.compendiumEntries.push(id);
+}
+
+// ── CLICK ─────────────────────────────────────────────────
+
+document.getElementById('tank').addEventListener('click', function(e) {
+  if (e.target.closest('.action-btn') || e.target.closest('#hud-bottom') || e.target.closest('#hud-top')) return;
+  const rect = bubblesCanvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  handleClick(x, y);
+});
+
+function handleClick(x, y) {
+  const now = Date.now();
+  G.totalClicks++;
+
+  // Personality scoring
+  G.personalityScores.bubbly += 0.02;
+
+  // Combo
+  if (now - G.lastClickTime < 3000) {
+    G.clickCombo++;
+  } else {
+    G.clickCombo = 1;
+  }
+  G.lastClickTime = now;
+
+  let val = computeClickValue();
+  let isCrit = false;
+  let comboMult = 1;
+
+  if (G.clickCombo >= 10) comboMult = 2;
+
+  // Critical click
+  const critThreshold = G.personality === 'BUBBLY' ? 8 : 10;
+  G.critClickCount++;
+  if (G.critClickCount >= critThreshold) {
+    G.critClickCount = 0;
+    val *= 5;
+    isCrit = true;
+    spawnBubbles(x, y, 20, true);
+    spawnFloatText(x, y - 20, `CRITICAL! +${fmtB(val*comboMult)}`, '#FFF082', 20);
+    shakeScreen();
+    animateGillFlare();
+  } else {
+    spawnBubbles(x, y, isCrit ? 12 : 4, false);
+    spawnFloatText(x, y - 10, `+${fmtB(val*comboMult)}`, comboMult > 1 ? '#FFB347' : '#C2EEF5', 14);
+  }
+
+  if (G.clickCombo >= 10 && !isCrit) {
+    spawnFloatText(x, y - 30, `COMBO ×${comboMult}!`, '#FFB347', 13);
+  }
+
+  const total = val * comboMult;
+  G.bubbles += total;
+  G.totalBubblesAllTime += total;
+  G.needs.happiness = Math.min(100, G.needs.happiness + 0.5);
+
+  // Gill click detection (rough center)
+  const axoEl = document.getElementById('axo-container');
+  const axoRect = axoEl.getBoundingClientRect();
+  const tankRect = document.getElementById('tank').getBoundingClientRect();
+  const axoX = axoRect.left - tankRect.left + axoRect.width/2;
+  const axoY = axoRect.top - tankRect.top + axoRect.height * 0.3;
+  const dist = Math.hypot(x - axoX, y - axoY);
+
+  if (dist < 35 && !isCrit) {
+    val *= 3;
+    spawnBubbles(x, y, 8, false);
+    spawnFloatText(x, y-10, `💕 Gill Click! +${fmtB(val)}`, '#FF8EC0', 14);
+    G.needs.happiness = Math.min(100, G.needs.happiness + 2);
+  }
+}
+
+// ── ACTIONS ──────────────────────────────────────────────
+
+function doFeed() {
+  const btn = document.getElementById('btn-feed');
+  if (btn.classList.contains('cooldown')) return;
+  G.needs.hunger = Math.min(100, G.needs.hunger + G.feedBonus * G.activityBonus);
+  G.needs.happiness = Math.min(100, G.needs.happiness + 5);
+  G.feedCount++;
+  G.personalityScores.studious += 0.1;
+  spawnBubbles(bubblesCanvas.width/2, bubblesCanvas.height*0.5, 8, false);
+  spawnFloatText(bubblesCanvas.width/2, bubblesCanvas.height*0.45, `🍤 Fed! +${Math.round(G.feedBonus)} Hunger`, '#FFB347', 15);
+  triggerHappy();
+  setCooldown('feed', 7200000, btn); // 2 hr
+  showToast('🍤 Mmm, delicious!');
+}
+
+function doClean() {
+  const btn = document.getElementById('btn-clean');
+  if (btn.classList.contains('cooldown')) return;
+  G.needs.cleanliness = Math.min(100, G.needs.cleanliness + 60 * G.activityBonus);
+  G.needs.enrichment  = Math.min(100, G.needs.enrichment  + (5 + G.actEnrichBonus));
+  G.personalityScores.studious += 0.05;
+  spawnBubbles(bubblesCanvas.width/2, bubblesCanvas.height*0.4, 15, false);
+  spawnFloatText(bubblesCanvas.width/2, bubblesCanvas.height*0.4, `🧹 Squeaky clean!`, '#6ECFE8', 15);
+  setCooldown('clean', 9000000, btn);
+  showToast('🧹 Gerald the Filter applauds!');
+}
+
+function doPlay() {
+  const btn = document.getElementById('btn-play');
+  if (btn.classList.contains('cooldown')) return;
+  G.needs.happiness  = Math.min(100, G.needs.happiness  + 25 * G.activityBonus);
+  G.needs.enrichment = Math.min(100, G.needs.enrichment + (20 + G.actEnrichBonus));
+  // Bubble burst
+  const earned = computeBps() * 15;
+  G.bubbles += earned;
+  G.totalBubblesAllTime += earned;
+  G.personalityScores.mischievous += 0.1;
+  G.personalityScores.bubbly += 0.05;
+  spawnBubbles(bubblesCanvas.width/2, bubblesCanvas.height*0.5, 25, true);
+  spawnFloatText(bubblesCanvas.width/2, bubblesCanvas.height*0.4, `🫧 POP! +${fmtB(earned)}`, '#C2EEF5', 16);
+  triggerHappy();
+  setCooldown('play', 5400000, btn);
+  showToast('🫧 Bubble Pop! Your axolotl is thrilled.');
+}
+
+function setCooldown(type, ms, btn) {
+  G.cooldowns[type] = Date.now() + ms;
+  btn.classList.add('cooldown');
+  const interval = setInterval(() => {
+    const rem = G.cooldowns[type] - Date.now();
+    if (rem <= 0) {
+      btn.classList.remove('cooldown');
+      clearInterval(interval);
+      showToast(`${type === 'feed' ? '🍤' : type === 'clean' ? '🧹' : '🫧'} ${type} is ready!`);
+    }
+  }, 1000);
+}
+
+function restoreCooldowns() {
+  ['feed','clean','play'].forEach(t => {
+    const btn = document.getElementById('btn-' + t);
+    if (!btn) return;
+    if (G.cooldowns[t] && G.cooldowns[t] > Date.now()) {
+      btn.classList.add('cooldown');
+      const interval = setInterval(() => {
+        if (G.cooldowns[t] - Date.now() <= 0) {
+          btn.classList.remove('cooldown');
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+  });
+}
+
+// ── HUD UPDATE ────────────────────────────────────────────
+
+function updateHUD(bps) {
+  document.getElementById('bubble-count').textContent = fmtB(G.bubbles);
+  document.getElementById('bps-display').textContent  = fmtB(bps) + ' B/s';
+
+  const mood = computeMood();
+  const moodMult = computeMoodMult(mood);
+  document.getElementById('mood-bar').style.width = mood + '%';
+  document.getElementById('mood-pct').textContent  = Math.round(mood) + '%';
+
+  const moodEmoji = mood >= 85 ? '🌟' : mood >= 65 ? '😊' : mood >= 45 ? '😐' : mood >= 25 ? '😟' : '😢';
+  document.getElementById('mood-emoji').textContent = moodEmoji;
+
+  const moodColor = mood >= 85 ? 'linear-gradient(90deg,#FFD700,#FFF082)' :
+                    mood >= 65 ? 'linear-gradient(90deg,var(--need-happy),var(--bubble-yellow))' :
+                    mood >= 45 ? 'linear-gradient(90deg,#88B8D4,#A8D8F0)' :
+                    mood >= 25 ? 'linear-gradient(90deg,#D4A8A8,#E8C8C8)' :
+                    'linear-gradient(90deg,#A8A8C8,#C8C8E8)';
+  document.getElementById('mood-bar').style.background = moodColor;
+
+  ['hunger','happy','clean','enrich'].forEach(n => {
+    const key = n === 'happy' ? 'happiness' : n === 'clean' ? 'cleanliness' : n === 'enrich' ? 'enrichment' : n;
+    const val = Math.round(G.needs[key]);
+    document.getElementById(n+'-val').textContent = val;
+    const bar = document.getElementById(n+'-bar');
+    bar.style.width = val + '%';
+    const colors = {hunger:'var(--need-hunger)',happy:'var(--need-happy)',clean:'var(--need-clean)',enrich:'var(--need-enrich)'};
+    bar.style.background = val > 60 ? colors[n] : val > 30 ? '#FFB347' : '#FF5050';
+  });
+
+  const days = Math.floor(G.runDays);
+  document.getElementById('day-display').textContent = `📅 Day ${days + 1}`;
+  document.getElementById('stage-label').textContent = STAGES.find(s=>s.id===G.stage)?.label || G.stage;
+  document.getElementById('axo-name-label').textContent = G.axolotlName || '?';
+
+  startIdleAnim();
+}
+
+// ── PANELS ───────────────────────────────────────────────
+
+function openPanel(name) {
+  document.getElementById('panel-' + name).classList.add('open');
+  if (name === 'upgrades') renderUpgrades();
+  if (name === 'helpers')  renderHelpersPanel();
+  if (name === 'compendium') renderCompendium();
+  if (name === 'stats') renderStats();
+}
+
+function closePanel(name) {
+  document.getElementById('panel-' + name).classList.remove('open');
+}
+
+function renderUpgrades() {
+  const body = document.getElementById('upgrades-body');
+  const cats = ['feeding','habitat','enrichment','axolotl'];
+  const catLabels = { feeding:'🍤 Feeding', habitat:'🏠 Habitat', enrichment:'🌿 Enrichment', axolotl:'🫧 Axolotl Self' };
+  body.innerHTML = '';
+
+  cats.forEach(cat => {
+    const sec = document.createElement('div');
+    sec.className = 'upgrade-section';
+    sec.innerHTML = `<div class="upgrade-section-title">${catLabels[cat]}</div>`;
+
+    UPGRADES.filter(u => u.cat === cat).forEach(u => {
+      const purchased = !!G.upgrades[u.id];
+      const canAfford = G.bubbles >= u.cost;
+      const card = document.createElement('div');
+      card.className = 'upg-card' + (purchased ? ' purchased' : (!canAfford ? ' cant-afford' : ''));
+      card.innerHTML = `
+        <div class="upg-icon">${u.icon}</div>
+        <div class="upg-info">
+          <div class="upg-name">${u.name}${purchased ? ' ✓' : ''}</div>
+          <div class="upg-desc">${u.desc}</div>
+        </div>
+        <div class="upg-cost${purchased?' purchased':''}">${purchased ? '✓ Done' : fmtB(u.cost) + ' B'}</div>
+      `;
+      if (!purchased && canAfford) {
+        card.onclick = () => buyUpgrade(u.id);
+      }
+      sec.appendChild(card);
+    });
+    body.appendChild(sec);
+  });
+}
+
+function buyUpgrade(id) {
+  const u = UPGRADES.find(x => x.id === id);
+  if (!u || G.upgrades[id] || G.bubbles < u.cost) return;
+  G.bubbles -= u.cost;
+  G.upgrades[id] = true;
+  G.totalUpgrades++;
+  G.totalUpgradesPurchased++;
+  u.effect();
+  if (u.cat === 'axolotl') G.personalityScores.studious += 0.3;
+  else G.personalityScores.bubbly += 0.1;
+  showToast(`✨ Purchased: ${u.name}!`);
+  checkMilestones();
+  renderUpgrades();
+  saveGame();
+}
+
+function renderHelpersPanel() {
+  const body = document.getElementById('helpers-body');
+  body.innerHTML = '';
+
+  HELPERS.forEach(h => {
+    const hs = G.helpers[h.id] || { unlocked: false, level: 0 };
+    const bps = getHelperBps(h, hs);
+    const card = document.createElement('div');
+    card.className = 'helper-card';
+    const upgBtns = h.upgradeCosts.map((cost, i) => {
+      if (!hs.unlocked) return '';
+      if (hs.level > i) return `<span style="font-size:12px;color:var(--mint-dark);">✓ Level ${i+1} (×${h.upgradeMults[i]})</span>`;
+      if (hs.level === i) {
+        const canAfford = G.bubbles >= cost;
+        return `<button class="helper-upg-btn${canAfford?'':' locked'}" onclick="upgradeHelper('${h.id}',${i})">
+          Upgrade to Level ${i+1} (×${h.upgradeMults[i]}) — ${fmtB(cost)} B
+        </button>`;
+      }
+      return `<span style="font-size:11px;color:var(--text-light);">Level ${i+1} locked until previous</span>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="helper-card-header">
+        <span class="helper-card-icon">${h.icon}</span>
+        <div>
+          <div class="helper-card-name">${h.name}</div>
+          <div class="helper-card-rate">${hs.unlocked ? fmtB(bps) + ' B/s current' : 'Locked'}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-light);margin-bottom:8px;">${h.desc}</div>
+      ${hs.unlocked ? upgBtns : `<button class="helper-upg-btn${G.bubbles>=h.unlockCost?'':' locked'}" onclick="unlockHelper('${h.id}')">
+        Unlock — ${fmtB(h.unlockCost)} B
+      </button>`}
+    `;
+    body.appendChild(card);
+  });
+}
+
+function getHelperBps(h, hs) {
+  if (!hs || !hs.unlocked) return 0;
+  let rate = h.baseBps;
+  for (let i = 0; i < (hs.level||0); i++) rate *= h.upgradeMults[i];
+  return rate * G.helperMult;
+}
+
+function unlockHelper(id) {
+  const h = HELPERS.find(x => x.id === id);
+  if (!h || G.bubbles < h.unlockCost) return;
+  G.bubbles -= h.unlockCost;
+  if (!G.helpers[id]) G.helpers[id] = { unlocked: true, level: 0 };
+  else G.helpers[id].unlocked = true;
+  showToast(`${h.icon} ${h.name} joined your tank!`);
+  renderHelpers();
+  renderHelpersPanel();
+  saveGame();
+}
+
+function upgradeHelper(id, level) {
+  const h = HELPERS.find(x => x.id === id);
+  const hs = G.helpers[id];
+  if (!h || !hs || hs.level !== level) return;
+  const cost = h.upgradeCosts[level];
+  if (G.bubbles < cost) return;
+  G.bubbles -= cost;
+  hs.level++;
+  showToast(`${h.icon} ${h.name} upgraded to Level ${hs.level}!`);
+  renderHelpersPanel();
+  saveGame();
+}
+
+function renderHelpers() {
+  const container = document.getElementById('helpers-container');
+  container.innerHTML = '';
+  HELPERS.forEach(h => {
+    const hs = G.helpers[h.id];
+    if (!hs || !hs.unlocked) return;
+    const el = document.createElement('div');
+    el.className = 'helper';
+    el.style.left = h.x + '%';
+    el.style.fontSize = '22px';
+    el.style.animationDelay = (Math.random() * 2) + 's';
+    el.textContent = h.icon;
+    container.appendChild(el);
+  });
+}
+
+function renderCompendium() {
+  const body = document.getElementById('compendium-body');
+  const siIdx = STAGES.findIndex(s=>s.id===G.stage);
+
+  const sections = [
+    { title: '🌿 Lifecycle Stages', entries: STAGES.map((s,i) => ({
+      unlocked: i <= siIdx,
+      icon: s.label.split(' ')[0],
+      name: s.label,
+      desc: i <= siIdx ? `Discovered on Day ${s.minDays}` : 'Not yet reached'
+    }))},
+    { title: '💕 Personalities', entries: Object.entries(PERSONALITIES).map(([k,v]) => ({
+      unlocked: G.compendiumEntries.includes('personality_'+k.toLowerCase()),
+      icon: v.name.split(' ')[0],
+      name: v.name,
+      desc: G.compendiumEntries.includes('personality_'+k.toLowerCase()) ? v.desc : '???'
+    }))},
+    { title: '🏆 Achievements', entries: ACHIEVEMENTS.map(a => ({
+      unlocked: G.achievementsUnlocked.includes(a.id),
+      icon: ['🐣','🗺️','💎','🌟','🌌'][a.tier],
+      name: a.name,
+      desc: a.unlocked ? `✓ ${a.desc}` : a.desc
+    }))},
+  ];
+
+  body.innerHTML = `<div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text-light);margin-bottom:12px;">
+    Entries: ${G.compendiumEntries.length} · Pearls: ${G.pearls} 🪬 · Scales: ${G.scales} 🐟 · Drifts: ${G.totalDrifts}
+  </div>`;
+
+  sections.forEach(sec => {
+    const div = document.createElement('div');
+    div.style.marginBottom = '20px';
+    div.innerHTML = `<div style="font-family:'Fredoka One',cursive;font-size:18px;color:var(--text-mid);margin-bottom:8px;">${sec.title}</div>`;
+    sec.entries.forEach(e => {
+      const entry = document.createElement('div');
+      entry.className = 'comp-entry';
+      entry.style.opacity = e.unlocked ? '1' : '.4';
+      entry.innerHTML = `<span class="comp-icon">${e.icon}</span><div class="comp-info"><strong>${e.name}</strong><span>${e.desc}</span></div>`;
+      div.appendChild(entry);
+    });
+    body.appendChild(div);
+  });
+}
+
+function renderStats() {
+  const body = document.getElementById('stats-body');
+  const bps = computeBps();
+  const mood = computeMood();
+  const si = STAGES.findIndex(s=>s.id===G.stage);
+
+  body.innerHTML = `
+    <div class="stat-row"><span class="stat-label">🫧 Total Bubbles (all time)</span><span class="stat-val">${fmtB(G.totalBubblesAllTime)}</span></div>
+    <div class="stat-row"><span class="stat-label">⚡ Current B/s</span><span class="stat-val">${fmtB(bps)}</span></div>
+    <div class="stat-row"><span class="stat-label">🖱️ Click Value</span><span class="stat-val">${fmtB(computeClickValue())}</span></div>
+    <div class="stat-row"><span class="stat-label">😊 Mood Score</span><span class="stat-val">${Math.round(mood)}% (×${computeMoodMult(mood).toFixed(2)})</span></div>
+    <div class="stat-row"><span class="stat-label">📅 Run Day</span><span class="stat-val">Day ${Math.floor(G.runDays)+1}</span></div>
+    <div class="stat-row"><span class="stat-label">🦎 Lifecycle Stage</span><span class="stat-val">${STAGES[si].label}</span></div>
+    <div class="stat-row"><span class="stat-label">💕 Personality</span><span class="stat-val">${G.personality ? PERSONALITIES[G.personality]?.name : 'Emerging...'}</span></div>
+    <div class="stat-row"><span class="stat-label">🖱️ Total Clicks</span><span class="stat-val">${G.totalClicks.toLocaleString()}</span></div>
+    <div class="stat-row"><span class="stat-label">🏆 Achievements</span><span class="stat-val">${G.achievementsUnlocked.length} / ${ACHIEVEMENTS.length}</span></div>
+    <div class="stat-row"><span class="stat-label">🌌 Total Drifts</span><span class="stat-val">${G.totalDrifts}</span></div>
+    <div class="stat-row"><span class="stat-label">🪬 Pearls</span><span class="stat-val">${G.pearls}</span></div>
+    <div class="stat-row"><span class="stat-label">🐟 Scales</span><span class="stat-val">${G.scales}</span></div>
+    <div class="stat-row"><span class="stat-label">📅 Login Streak</span><span class="stat-val">${G.loginStreak} days</span></div>
+    <div style="margin-top:20px;border-top:2px solid var(--cream-dark);padding-top:16px;">
+      <button onclick="if(confirm('Reset all progress?')){resetGame()}" style="background:#FBEBE9;border:2px solid var(--coral-dark);border-radius:10px;padding:8px 16px;font-family:'Fredoka One',cursive;color:var(--coral-dark);cursor:pointer;font-size:14px;">Reset Game</button>
+      <button onclick="exportSave()" style="background:var(--cream-dark);border:2px solid var(--bark-light);border-radius:10px;padding:8px 16px;font-family:'Fredoka One',cursive;color:var(--text-mid);cursor:pointer;font-size:14px;margin-left:8px;">Export Save</button>
+    </div>
+  `;
+}
+
+// ── DRIFT ─────────────────────────────────────────────────
+
+function openDriftScreen() {
+  const pearlEarned = Math.max(5, Math.floor(Math.sqrt(G.totalBubblesAllTime / 1e10)));
+  document.getElementById('drift-pearl-preview').textContent = pearlEarned;
+  document.getElementById('drift-screen').style.display = 'flex';
+}
+
+document.getElementById('drift-confirm').onclick = function() {
+  performDrift();
+};
+document.getElementById('drift-cancel').onclick = function() {
+  document.getElementById('drift-screen').style.display = 'none';
+};
+
+function performDrift() {
+  const pearlEarned = Math.max(5, Math.floor(Math.sqrt(G.totalBubblesAllTime / 1e10)));
+  const prevDriftTree = G.driftTree || {};
+  const prevAch = G.achievementsUnlocked;
+  const prevComp = G.compendiumEntries;
+  const prevScales = G.scales;
+  const prevPearls = (G.pearls || 0) + pearlEarned;
+  const prevHelperUnlocks = {};
+  HELPERS.forEach(h => {
+    if (G.helpers[h.id]?.unlocked) prevHelperUnlocks[h.id] = { unlocked: true, level: 0 };
+  });
+  const drifts = (G.totalDrifts || 0) + 1;
+
+  // Reset
+  G = newGameState();
+  G.totalDrifts = drifts;
+  G.pearls = prevPearls;
+  G.scales = prevScales;
+  G.achievementsUnlocked = prevAch;
+  G.compendiumEntries = prevComp;
+  G.helpers = prevHelperUnlocks;
+  G.driftTree = prevDriftTree;
+  if (!G.driftTree) G.driftTree = {};
+
+  // Show drift tree UI
+  document.getElementById('drift-screen').style.display = 'none';
+  showToast(`✨ The Great Drift! +${pearlEarned} Pearls. A new journey begins.`);
+  openDriftTreeUI();
+  saveGame();
+}
+
+function openDriftTreeUI() {
+  // Simple in-panel experience
+  const body = document.getElementById('stats-body');
+  openPanel('stats');
+  const DRIFT_UPGRADES = [
+    { id:'memoryOfTheWater', name:'Memory of the Water', cost:5,  desc:'Offline rate +10%',           effect:()=>{ G.driftTree.memoryOfTheWater=true; } },
+    { id:'ancientGills',     name:'Ancient Gills',       cost:8,  desc:'Start new runs at 2× base B/s',effect:()=>{ G.driftTree.ancientGills=true; } },
+    { id:'wisdomOfThousands',name:'Wisdom of Thousands', cost:12, desc:'All upgrade costs -15%',       effect:()=>{ G.driftTree.wisdomOfThousands=true; } },
+    { id:'pearlEcho',        name:'Pearl Echo',          cost:18, desc:'Pearl earnings per Drift +20%',effect:()=>{ G.driftTree.pearlEcho=true; } },
+    { id:'gillFrondLegacy',  name:'Gill Frond Legacy',   cost:25, desc:'Lifecycle B/s bonuses ×1.5',   effect:()=>{ G.driftTree.gillFrondLegacy=true; } },
+    { id:'theDriftCurrent',  name:'The Drift Current',   cost:35, desc:'Offline cap raised to ~full rate', effect:()=>{ G.driftTree.theDriftCurrent=true; } },
+    { id:'infiniteWaters',   name:'Infinite Waters',     cost:50, desc:'All B/s ×2 permanently',       effect:()=>{ G.driftTree.infiniteWaters=true; } },
+  ];
+  body.innerHTML = `<div style="font-family:'Fredoka One',cursive;font-size:20px;color:var(--pearl);margin-bottom:12px;">🌌 Drift Tree — ${G.pearls} Pearls 🪬</div>
+  <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Spend Pearls on permanent upgrades that persist across all runs.</p>`;
+  DRIFT_UPGRADES.forEach(du => {
+    const purchased = G.driftTree[du.id];
+    const canAfford = G.pearls >= du.cost;
+    const div = document.createElement('div');
+    div.className = 'upg-card' + (purchased?' purchased':(!canAfford?' cant-afford':''));
+    div.innerHTML = `<div class="upg-icon">🪬</div><div class="upg-info"><div class="upg-name">${du.name}${purchased?' ✓':''}</div><div class="upg-desc">${du.desc}</div></div><div class="upg-cost${purchased?' purchased':''}">${purchased?'✓':du.cost+' P'}</div>`;
+    if (!purchased && canAfford) {
+      div.onclick = () => {
+        G.pearls -= du.cost;
+        du.effect();
+        showToast(`🪬 Drift upgrade: ${du.name}`);
+        openDriftTreeUI();
+        saveGame();
+      };
+    }
+    body.appendChild(div);
+  });
+}
+
+// ── HELPERS RENDER ────────────────────────────────────────
+
+function updateStageLabel() {
+  document.getElementById('stage-label').textContent = STAGES.find(s=>s.id===G.stage)?.label || G.stage;
+}
+
+// ── SAVE / LOAD ───────────────────────────────────────────
+
+function saveGame() {
+  G.lastSave = Date.now();
+  // Store computed bps for offline calc
+  G._savedBps = computeBps();
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(G)); } catch(e){}
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data.axolotlName) return false;
+    G = { ...newGameState(), ...data };
+    // Restore upgrade effects
+    UPGRADES.forEach(u => { if (G.upgrades[u.id]) u.effect(); });
+    return true;
+  } catch(e) { return false; }
+}
+
+function computeOfflineEarnings() {
+  const now = Date.now();
+  const offlineMs = now - G.lastSave;
+  const offlineHours = offlineMs / 3600000;
+  if (offlineHours < 0.05) return 0;
+  const offlineMult = G.driftTree?.theDriftCurrent ? 0.9 : 0.5;
+  const hourlyRate = (G._savedBps || 0) * 3600;
+  const cappedHours = Math.min(offlineHours, 12);
+  const earnings = hourlyRate * cappedHours * offlineMult;
+  // Drain needs offline
+  G.needs.hunger      = Math.max(0, G.needs.hunger      - G.drainRates.hunger      * offlineHours);
+  G.needs.happiness   = Math.max(0, G.needs.happiness   - G.drainRates.happiness   * offlineHours);
+  G.needs.cleanliness = Math.max(0, G.needs.cleanliness - G.drainRates.cleanliness * offlineHours);
+  G.needs.enrichment  = Math.max(0, G.needs.enrichment  - G.drainRates.enrichment  * offlineHours);
+  return earnings;
+}
+
+function exportSave() {
+  saveGame();
+  const b64 = btoa(localStorage.getItem(SAVE_KEY));
+  navigator.clipboard?.writeText(b64).then(() => showToast('📋 Save copied to clipboard!'));
+}
+
+function resetGame() {
+  localStorage.removeItem(SAVE_KEY);
+  location.reload();
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+
+function fmtB(n) {
+  if (n < 1e3)  return Math.floor(n).toString();
+  if (n < 1e6)  return (n/1e3).toFixed(1) + 'K';
+  if (n < 1e9)  return (n/1e6).toFixed(2) + 'M';
+  if (n < 1e12) return (n/1e9).toFixed(2) + 'B';
+  if (n < 1e15) return (n/1e12).toFixed(2) + 'T';
+  if (n < 1e18) return (n/1e15).toFixed(2) + 'Qa';
+  return (n/1e18).toFixed(2) + 'Qi';
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function shakeScreen() {
+  const tank = document.getElementById('tank');
+  tank.classList.add('shake');
+  setTimeout(() => tank.classList.remove('shake'), 350);
+}
+
+function flashMilestone(title, desc) {
+  const flash = document.getElementById('milestone-flash');
+  const badge = document.getElementById('milestone-badge');
+  document.getElementById('milestone-title').textContent = title;
+  document.getElementById('milestone-desc').textContent  = desc;
+  flash.style.display = 'flex';
+  setTimeout(() => { flash.classList.add('show'); badge.classList.add('show'); }, 50);
+  setTimeout(() => {
+    flash.classList.remove('show');
+    badge.classList.remove('show');
+    setTimeout(() => { flash.style.display = 'none'; }, 400);
+  }, 3500);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+
+function startGame(name) {
+  G.axolotlName = name;
+  G.runStartTime = Date.now();
+  document.getElementById('name-screen').style.display = 'none';
+  document.getElementById('game').style.display = 'flex';
+  setupCanvases();
+  window.addEventListener('resize', resizeCanvases);
+  renderHelpers();
+  updateCrown();
+  updateStageLabel();
+  restoreCooldowns();
+  setInterval(gameTick, 100);
+  setInterval(saveGame, 30000);
+  requestAnimationFrame(ts => { lastFrame = ts; gameLoop(ts); });
+  showToast(`Welcome home, ${name}! 🫧`);
+}
+
+function initGame() {
+  setTimeout(() => {
+    const loaded = loadGame();
+
+    if (loaded) {
+      // Offline earnings
+      const offlineEarned = computeOfflineEarnings();
+      document.getElementById('loading').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('game').style.display = 'flex';
+        setupCanvases();
+        window.addEventListener('resize', resizeCanvases);
+        renderHelpers();
+        updateCrown();
+        updateStageLabel();
+        restoreCooldowns();
+        setInterval(gameTick, 100);
+        setInterval(saveGame, 30000);
+        requestAnimationFrame(ts => { lastFrame = ts; gameLoop(ts); });
+        if (offlineEarned > 0) {
+          G.bubbles += offlineEarned;
+          G.totalBubblesAllTime += offlineEarned;
+          setTimeout(() => {
+            spawnBubbles(bubblesCanvas.width/2, bubblesCanvas.height*0.6, 30, true);
+            spawnFloatText(bubblesCanvas.width/2, bubblesCanvas.height*0.5, `Welcome back! +${fmtB(offlineEarned)} B`, '#FFF082', 18);
+            showToast(`🫧 Your axolotl collected ${fmtB(offlineEarned)} Bubbles while you were away!`);
+          }, 800);
+        } else {
+          showToast(`Welcome back, ${G.axolotlName}! 🫧`);
+        }
+        // Show personality if already revealed
+        if (G.personality && !G.personalityRevealed) showPersonalityReveal();
+        // Login streak
+        const today = todayStr();
+        if (G.lastLoginDate !== today) {
+          G.lastLoginDate = today;
+          G.loginStreak = (G.loginStreak || 1) + 1;
+        }
+      }, 600);
+    } else {
+      document.getElementById('loading').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('name-screen').style.display = 'flex';
+      }, 600);
+    }
+  }, 1200);
+}
+
+document.getElementById('start-btn').onclick = function() {
+  const name = document.getElementById('name-input').value.trim() || 'Axolotl';
+  document.getElementById('name-screen').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  document.getElementById('loading').style.opacity = '1';
+  document.getElementById('loading').querySelector('p').textContent = 'placing pebbles...';
+  setTimeout(() => {
+    document.getElementById('loading').style.opacity = '0';
+    setTimeout(() => {
+      document.getElementById('loading').style.display = 'none';
+      startGame(name);
+    }, 500);
+  }, 1000);
+};
+
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('start-btn').click();
+});
+
+// Prevent panel click through
+document.querySelectorAll('.panel').forEach(p => {
+  p.addEventListener('click', e => e.stopPropagation());
+});
+
+// ── BOOT ──────────────────────────────────────────────────
+initGame();
+</script>
+</body>
+</html>
