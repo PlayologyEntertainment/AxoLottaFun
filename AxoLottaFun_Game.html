@@ -416,6 +416,13 @@ html,body{width:100%;height:100%;overflow:hidden;background:#0d2a38;font-family:
 </div>
 
 <script>
+// ── DIAGNOSTIC: catch all property-set errors and log exact location ──────────
+window.addEventListener('error', function(e) {
+  if (e.message && e.message.includes('innerHTML')) {
+    console.error('innerHTML NULL at:', e.filename, 'line', e.lineno, 'col', e.colno);
+    console.trace();
+  }
+});
 const SAVE_KEY = 'axolottafun_save_v1';
 
 // ── DEFINITIONS ──────────────────────────────────────────
@@ -1885,7 +1892,9 @@ function renderAxolotlStage() {
   const s = scaleMap[G.stage] || 1.0;
   svg.style.transform = `scale(${s})`;
   svg.style.transformOrigin = 'center bottom';
+  if (svg) {
   svg.innerHTML = stageSVG;
+  }
 
   // Sync shadow size
   const shadow = document.getElementById('axo-shadow');
@@ -2546,6 +2555,7 @@ function closePanel(name) {
 
 function renderUpgrades() {
   const body = document.getElementById('upgrades-body');
+  if (!body) return;
   const cats = ['feeding','habitat','enrichment','axolotl'];
   const catLabels = { feeding:'🍤 Feeding', habitat:'🏠 Habitat', enrichment:'🌿 Enrichment', axolotl:'🫧 Axolotl Self' };
   body.innerHTML = '';
@@ -2595,6 +2605,7 @@ function buyUpgrade(id) {
 
 function renderHelpersPanel() {
   const body = document.getElementById('helpers-body');
+  if (!body) return;
   body.innerHTML = '';
 
   HELPERS.forEach(h => {
@@ -2669,6 +2680,7 @@ function renderHelpers() {
 
 function renderCompendium() {
   const body = document.getElementById('compendium-body');
+  if (!body) return;
   const siIdx = STAGES.findIndex(s=>s.id===G.stage);
 
   const sections = [
@@ -2713,6 +2725,7 @@ function renderCompendium() {
 
 function renderStats() {
   const body = document.getElementById('stats-body');
+  if (!body) return;
   const bps = computeBps();
   const mood = computeMood();
   const si = STAGES.findIndex(s=>s.id===G.stage);
@@ -2787,6 +2800,7 @@ function performDrift() {
 function openDriftTreeUI() {
   // Simple in-panel experience
   const body = document.getElementById('stats-body');
+  if (!body) return;
   openPanel('stats');
   const DRIFT_UPGRADES = [
     { id:'memoryOfTheWater', name:'Memory of the Water', cost:5,  desc:'Offline rate +10%',           effect:()=>{ G.driftTree.memoryOfTheWater=true; } },

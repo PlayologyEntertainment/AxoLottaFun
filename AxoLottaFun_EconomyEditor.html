@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AxoLottaFun — Economy Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1b2a;--panel:#132030;--panel2:#1a2d42;--border:#2a4a66;
+  --aqua:#6ECFE8;--aqua2:#3AA8C8;--coral:#FF7F6E;--mint:#7ADBB8;
+  --yellow:#FFF082;--purple:#B48FD4;--pink:#F9B8D8;
+  --text:#e8f4f8;--text2:#9ab8cc;--text3:#5a8aaa;
+  --good:#4DBFA0;--warn:#FFB347;--bad:#FF7F6E;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Nunito',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ── HEADER ── */
+header{background:var(--panel);border-bottom:2px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;}
+header h1{font-family:'Fredoka One',cursive;font-size:24px;color:var(--pink);}
+header .sub{font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);letter-spacing:.1em;}
+.compile-btn{margin-left:auto;background:var(--coral);border:none;border-radius:10px;padding:10px 24px;font-family:'Fredoka One',cursive;font-size:16px;color:white;cursor:pointer;transition:all .15s;}
+.compile-btn:hover{background:#ff6050;transform:translateY(-1px);}
+.compile-btn:active{transform:translateY(1px);}
+.status-pill{font-family:'Space Mono',monospace;font-size:11px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);color:var(--text2);}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:1fr 380px;gap:0;height:calc(100vh - 65px);}
+.left-col{overflow-y:auto;padding:24px;}
+.right-col{background:var(--panel);border-left:2px solid var(--border);overflow-y:auto;padding:20px;position:sticky;top:65px;height:calc(100vh - 65px);}
+
+/* ── SECTIONS ── */
+.section{background:var(--panel);border:1.5px solid var(--border);border-radius:14px;margin-bottom:20px;overflow:hidden;}
+.section-header{padding:14px 18px;background:var(--panel2);border-bottom:1.5px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;}
+.section-header h2{font-family:'Fredoka One',cursive;font-size:18px;color:var(--aqua);}
+.section-header .toggle{margin-left:auto;color:var(--text3);font-size:18px;transition:transform .2s;}
+.section-header.collapsed .toggle{transform:rotate(-90deg);}
+.section-body{padding:16px 18px;}
+.section-body.collapsed{display:none;}
+
+/* ── TABLES ── */
+table{width:100%;border-collapse:collapse;}
+th{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--text3);text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.03);}
+.row-label{font-family:'Fredoka One',cursive;font-size:14px;color:var(--text);white-space:nowrap;}
+.row-sub{font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);}
+
+/* ── INPUTS ── */
+input[type=number]{
+  background:var(--bg);border:1.5px solid var(--border);border-radius:8px;
+  color:var(--yellow);font-family:'Space Mono',monospace;font-size:13px;
+  padding:5px 8px;width:100%;min-width:80px;outline:none;
+  transition:border-color .15s;
+}
+input[type=number]:focus{border-color:var(--aqua);}
+input[type=number]::-webkit-inner-spin-button{opacity:.4;}
+
+/* ── BADGES ── */
+.badge{font-family:'Space Mono',monospace;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700;white-space:nowrap;}
+.badge-mult{background:rgba(255,179,71,.15);color:var(--warn);border:1px solid rgba(255,179,71,.3);}
+.badge-add {background:rgba(110,207,232,.15);color:var(--aqua);border:1px solid rgba(110,207,232,.3);}
+.badge-gate{background:rgba(180,143,212,.15);color:var(--purple);border:1px solid rgba(180,143,212,.3);}
+
+/* ── SIMULATOR PANEL ── */
+.sim-title{font-family:'Fredoka One',cursive;font-size:18px;color:var(--mint);margin-bottom:14px;}
+.sim-stage{margin-bottom:12px;background:var(--panel2);border-radius:10px;padding:12px;border:1px solid var(--border);}
+.sim-stage-name{font-family:'Fredoka One',cursive;font-size:15px;margin-bottom:4px;}
+.sim-row{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:11px;color:var(--text2);margin-top:3px;}
+.sim-row .val{color:var(--yellow);}
+.sim-row .val.good{color:var(--good);}
+.sim-row .val.warn{color:var(--warn);}
+.sim-row .val.bad{color:var(--bad);}
+.sim-total{background:var(--panel2);border:1.5px solid var(--aqua2);border-radius:10px;padding:12px;margin-top:12px;}
+.sim-total .big{font-family:'Fredoka One',cursive;font-size:22px;color:var(--aqua);}
+.sim-total .label{font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);margin-top:2px;}
+.target-bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:8px;border:1px solid var(--border);}
+.target-bar-fill{height:100%;border-radius:4px;transition:width .4s,background .4s;}
+.target-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);margin-top:4px;display:flex;justify-content:space-between;}
+
+/* ── HELPER GRID ── */
+.helper-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;}
+.helper-cell input{min-width:60px;}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:10px 0;}
+
+/* ── PRESET BUTTONS ── */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.preset-btn{background:var(--panel2);border:1.5px solid var(--border);border-radius:8px;padding:6px 14px;font-family:'Fredoka One',cursive;font-size:13px;color:var(--text2);cursor:pointer;transition:all .15s;}
+.preset-btn:hover{border-color:var(--aqua);color:var(--aqua);}
+
+/* ── MODAL ── */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;}
+#modal-overlay.show{display:flex;}
+#modal{background:var(--panel);border:2px solid var(--border);border-radius:16px;padding:28px;max-width:480px;width:90%;}
+#modal h3{font-family:'Fredoka One',cursive;font-size:22px;color:var(--yellow);margin-bottom:10px;}
+#modal p{color:var(--text2);font-size:13px;line-height:1.6;margin-bottom:16px;}
+#modal textarea{width:100%;height:120px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;color:var(--aqua);font-family:'Space Mono',monospace;font-size:11px;padding:10px;resize:none;outline:none;}
+.modal-btns{display:flex;gap:10px;margin-top:14px;}
+.modal-btns button{flex:1;padding:10px;border:none;border-radius:8px;font-family:'Fredoka One',cursive;font-size:15px;cursor:pointer;}
+#modal-copy{background:var(--aqua2);color:white;}
+#modal-close{background:var(--panel2);color:var(--text2);border:1.5px solid var(--border);}
+
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr;}
+  .right-col{position:static;height:auto;border-left:none;border-top:2px solid var(--border);}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🫧 AxoLottaFun Economy Editor</h1>
+    <div class="sub">PLAYOLOGY ENTERTAINMENT · BALANCE TUNING TOOL</div>
+  </div>
+  <div class="status-pill" id="status-pill">Ready</div>
+  <button class="compile-btn" onclick="compile()">⚙️ Compile → Game File</button>
+</header>
+
+<div class="layout">
+<div class="left-col">
+
+  <!-- PRESETS -->
+  <div style="margin-bottom:16px;">
+    <div style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);margin-bottom:8px;letter-spacing:.1em;">QUICK PRESETS</div>
+    <div class="presets">
+      <button class="preset-btn" onclick="applyPreset('current')">Current (15 min)</button>
+      <button class="preset-btn" onclick="applyPreset('balanced')">🎯 Balanced (10 hr)</button>
+      <button class="preset-btn" onclick="applyPreset('hardcore')">💀 Hardcore (40 hr)</button>
+    </div>
+  </div>
+
+  <!-- LIFECYCLE GATES -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span style="font-size:20px;">🦎</span>
+      <h2>Lifecycle Gates</h2>
+      <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);margin-left:8px;">Total Bubbles required to evolve</span>
+      <span class="toggle">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>STAGE</th><th>BUBBLES REQUIRED</th><th>B/s BONUS</th><th>CLICK BONUS</th></tr></thead>
+        <tbody id="stages-tbody"></tbody>
+      </table>
+      <div style="margin-top:10px;font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);">
+        ℹ️ Gates are cumulative total bubbles earned all-time. Each stage unlocks when G.totalBubblesAllTime passes this value.
+      </div>
+    </div>
+  </div>
+
+  <!-- UPGRADES -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span style="font-size:20px;">⬆️</span>
+      <h2>Upgrade Costs</h2>
+      <span class="toggle">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>UPGRADE</th><th>CAT</th><th>COST (B)</th><th>TYPE</th></tr></thead>
+        <tbody id="upgrades-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- HELPERS -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span style="font-size:20px;">🐌</span>
+      <h2>Helpers</h2>
+      <span class="toggle">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>HELPER</th><th>BASE B/s</th><th>UNLOCK COST</th><th>UPG 1 COST</th><th>UPG 2 COST</th><th>UPG 3 COST</th><th>UPG 1 ×</th><th>UPG 2 ×</th><th>UPG 3 ×</th></tr></thead>
+        <tbody id="helpers-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- DRIFT TREE -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span style="font-size:20px;">🌌</span>
+      <h2>Drift Tree (Pearl Costs)</h2>
+      <span class="toggle">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>UPGRADE</th><th>PEARL COST</th></tr></thead>
+        <tbody id="drift-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STARTING ECONOMY -->
+  <div class="section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span style="font-size:20px;">⚙️</span>
+      <h2>Starting Economy</h2>
+      <span class="toggle">▾</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <thead><tr><th>PARAMETER</th><th>VALUE</th><th>UNIT</th></tr></thead>
+        <tbody id="starting-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- RIGHT: SIMULATOR -->
+<div class="right-col">
+  <div class="sim-title">📊 Live Simulator</div>
+  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:12px;">
+    Estimates time-to-stage assuming average idle play. Updates live as you edit.
+  </div>
+  <div id="sim-output"></div>
+
+  <div class="divider"></div>
+
+  <div style="font-family:'Fredoka One',cursive;font-size:15px;color:var(--text2);margin:12px 0 8px;">Max BPS (fully upgraded)</div>
+  <div id="max-bps-display" style="font-family:'Space Mono',monospace;font-size:13px;color:var(--yellow);"></div>
+
+  <div class="divider"></div>
+
+  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);line-height:1.8;">
+    <div><span style="color:var(--good);">■</span> Under 8 hr — too fast</div>
+    <div><span style="color:var(--yellow);">■</span> 8–12 hr — target zone</div>
+    <div><span style="color:var(--warn);">■</span> 12–20 hr — long but ok</div>
+    <div><span style="color:var(--purple);">■</span> 20+ hr — hardcore</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);margin-bottom:6px;">COMPILE INSTRUCTIONS</div>
+  <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text2);line-height:1.7;">
+    1. Edit values above<br>
+    2. Watch simulator update<br>
+    3. Click <strong style="color:var(--coral);">Compile → Game File</strong><br>
+    4. Copy the output patch<br>
+    5. Replace the constants block in <code style="color:var(--aqua);">AxoLottaFun_Game.html</code>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: compile output -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h3>⚙️ Compiled Patch</h3>
+    <p>Copy everything below and replace the <strong style="color:var(--aqua);">ECONOMY CONSTANTS</strong> section in <code>AxoLottaFun_Game.html</code>. The section is marked with <code>// ── ECONOMY START</code> and <code>// ── ECONOMY END</code> comments after compilation.</p>
+    <textarea id="modal-output" readonly></textarea>
+    <div class="modal-btns">
+      <button id="modal-copy" onclick="copyPatch()">📋 Copy to Clipboard</button>
+      <button id="modal-close" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// ECONOMY DATA  — edit defaults here to change starting values
+// ════════════════════════════════════════════════════════════
+
+const ECONOMY = {
+
+  // ── LIFECYCLE GATES ─────────────────────────────────────
+  // Total bubbles all-time required to reach each stage
+  bubbleGates: {
+    HATCHLING: 50000,
+    JUVENILE:  2000000,
+    ADULT:     50000000,
+    ELDER:     5000000000,
+    LEGEND:    200000000000,
+  },
+
+  // Stage B/s and click bonuses (display/design only — not editable here
+  // because they are narrative, not economy. Edit in game file directly.)
+  stageBpsBonus:   { EGG:1.0, HATCHLING:1.8, JUVENILE:4.2, ADULT:12, ELDER:40, LEGEND:180 },
+  stageClickBonus: { EGG:1.0, HATCHLING:1.5, JUVENILE:3.0, ADULT:8,  ELDER:22, LEGEND:80  },
+
+  // ── UPGRADE COSTS ────────────────────────────────────────
+  upgradeCosts: {
+    // FEEDING
+    premiumPellet:  500,
+    algaeWafer:     2000,
+    bubbleBrine:    8000,
+    bloodworm:      30000,
+    spirulina:      120000,
+    autoDispenser:  2000000,
+    cosmicKrill:    20000000,
+    // HABITAT
+    basicFilter:    500,
+    ledLight:       3000,
+    thermometer:    12000,
+    premiumSub:     45000,
+    circPump:       150000,
+    ditherFish:     600000,
+    waterMonitor:   2500000,
+    // ENRICHMENT
+    floatBall:      1000,
+    puzzleFeeder:   4000,
+    tinyLibrary:    18000,
+    musicPlayer:    65000,
+    currentSwirl:   250000,
+    trophyShelf:    100000000,
+    // AXOLOTL
+    enhancedGills:  3500,
+    regenMeta:      14000,
+    percGaze:       55000,
+    bubbleBreath:   200000,
+    neotenOpt:      800000,
+    genomePro:      3500000,
+    radiantAura:    75000000,
+    legendPotential: 5000000000,
+  },
+
+  // ── HELPERS ──────────────────────────────────────────────
+  helpers: [
+    { id:'snorkel',    baseBps:1,    unlockCost:500,      upgradeCosts:[1000,    3000,     15000],      upgradeMults:[2,5,12]   },
+    { id:'shrimply',   baseBps:8,    unlockCost:4000,     upgradeCosts:[8000,    25000,    120000],     upgradeMults:[3,6,15]   },
+    { id:'clawdia',    baseBps:47,   unlockCost:30000,    upgradeCosts:[60000,   200000,   800000],     upgradeMults:[4,9,20]   },
+    { id:'puffington', baseBps:260,  unlockCost:200000,   upgradeCosts:[400000,  1200000,  5000000],    upgradeMults:[5,11,28]  },
+    { id:'inky',       baseBps:1400, unlockCost:1200000,  upgradeCosts:[2500000, 8000000,  35000000],   upgradeMults:[6,14,35]  },
+    { id:'oracle',     baseBps:9800, unlockCost:10000000, upgradeCosts:[20000000,65000000, 250000000],  upgradeMults:[7,18,50]  },
+  ],
+
+  // ── DRIFT TREE PEARL COSTS ───────────────────────────────
+  driftCosts: {
+    memoryOfTheWater: 5,
+    ancientGills:     8,
+    wisdomOfThousands:12,
+    pearlEcho:        18,
+    gillFrondLegacy:  25,
+    theDriftCurrent:  35,
+    infiniteWaters:   50,
+  },
+
+  // ── STARTING ECONOMY ─────────────────────────────────────
+  starting: {
+    hungerDrain:     8,    // pts/hr
+    happinessDrain:  5,    // pts/hr
+    cleanlinessDrain:6,    // pts/hr
+    enrichmentDrain: 4,    // pts/hr
+    feedBonus:       40,   // hunger pts per feeding
+    offlineMultiplier: 0.5, // fraction of online rate earned offline
+    feedCooldownMs:  7200000,  // 2 hr
+    cleanCooldownMs: 9000000,  // 2.5 hr
+    playCooldownMs:  5400000,  // 1.5 hr
+  },
+};
+
+// ── METADATA (labels / display only) ─────────────────────────────────────────
+const UPGRADE_META = [
+  {id:'premiumPellet', name:'Premium Pellet Mix',      cat:'feeding',    mult:false},
+  {id:'algaeWafer',    name:'Algae Wafer Supplement',  cat:'feeding',    mult:false},
+  {id:'bubbleBrine',   name:'Bubble-Infused Brine Shrimp',cat:'feeding', mult:true },
+  {id:'bloodworm',     name:'Bloodworm Luxury Pack',   cat:'feeding',    mult:true },
+  {id:'spirulina',     name:'Spirulina Growth Booster',cat:'feeding',    mult:true },
+  {id:'autoDispenser', name:'Auto Food Dispenser',     cat:'feeding',    mult:false},
+  {id:'cosmicKrill',   name:'Cosmic Krill Formula',    cat:'feeding',    mult:true },
+  {id:'basicFilter',   name:'Basic Filter Unit',       cat:'habitat',    mult:false},
+  {id:'ledLight',      name:'LED Spectrum Light Bar',  cat:'habitat',    mult:true },
+  {id:'thermometer',   name:'Precision Thermometer',   cat:'habitat',    mult:false},
+  {id:'premiumSub',    name:'Premium Substrate Layer', cat:'habitat',    mult:true },
+  {id:'circPump',      name:'Powerhead Circulation Pump',cat:'habitat',  mult:true },
+  {id:'ditherFish',    name:'Dither Fish School',      cat:'habitat',    mult:false},
+  {id:'waterMonitor',  name:'Water Quality Monitor',   cat:'habitat',    mult:true },
+  {id:'floatBall',     name:'Floating Ball Toy',       cat:'enrichment', mult:false},
+  {id:'puzzleFeeder',  name:'Enrichment Puzzle Feeder',cat:'enrichment', mult:false},
+  {id:'tinyLibrary',   name:'Tiny Library Corner',     cat:'enrichment', mult:false},
+  {id:'musicPlayer',   name:'Ambient Music Player',    cat:'enrichment', mult:true },
+  {id:'currentSwirl',  name:'Current Swirl Generator', cat:'enrichment', mult:true },
+  {id:'trophyShelf',   name:'Trophy Shelf',            cat:'enrichment', mult:false},
+  {id:'enhancedGills', name:'Enhanced Gill Fronds',    cat:'axolotl',    mult:true },
+  {id:'regenMeta',     name:'Regenerative Metabolism', cat:'axolotl',    mult:false},
+  {id:'percGaze',      name:'Perceptive Gaze',         cat:'axolotl',    mult:true },
+  {id:'bubbleBreath',  name:'Bubble Breath Mastery',   cat:'axolotl',    mult:true },
+  {id:'neotenOpt',     name:'Neoteny Optimization',    cat:'axolotl',    mult:true },
+  {id:'genomePro',     name:'Axolotl Genome Project',  cat:'axolotl',    mult:true },
+  {id:'radiantAura',   name:'Radiant Aura Glow',       cat:'axolotl',    mult:true },
+  {id:'legendPotential',name:'Legend Potential Unlocked',cat:'axolotl',  mult:true },
+];
+
+const HELPER_META = {
+  snorkel:'🐌 Snorkel', shrimply:'🦐 Shrimply', clawdia:'🦀 Clawdia',
+  puffington:'🐡 Puffington', inky:'🦑 Inky', oracle:'🐙 Oracle'
+};
+
+const DRIFT_META = {
+  memoryOfTheWater:'Memory of the Water', ancientGills:'Ancient Gills',
+  wisdomOfThousands:'Wisdom of Thousands', pearlEcho:'Pearl Echo',
+  gillFrondLegacy:'Gill Frond Legacy', theDriftCurrent:'The Drift Current',
+  infiniteWaters:'Infinite Waters',
+};
+
+const STARTING_META = {
+  hungerDrain:      {label:'Hunger Drain',      unit:'pts/hr'},
+  happinessDrain:   {label:'Happiness Drain',   unit:'pts/hr'},
+  cleanlinessDrain: {label:'Cleanliness Drain', unit:'pts/hr'},
+  enrichmentDrain:  {label:'Enrichment Drain',  unit:'pts/hr'},
+  feedBonus:        {label:'Feed Restore Amount',unit:'pts'},
+  offlineMultiplier:{label:'Offline Rate',       unit:'× online'},
+  feedCooldownMs:   {label:'Feed Cooldown',      unit:'ms'},
+  cleanCooldownMs:  {label:'Clean Cooldown',     unit:'ms'},
+  playCooldownMs:   {label:'Play Cooldown',      unit:'ms'},
+};
+
+// ══════════════════════════════════════════════
+// PRESETS
+// ══════════════════════════════════════════════
+const PRESETS = {
+  current: {
+    bubbleGates:   {HATCHLING:1e3, JUVENILE:5e4, ADULT:5e5, ELDER:1e7, LEGEND:5e8},
+    upgradeCosts:  {premiumPellet:100,algaeWafer:320,bubbleBrine:1200,bloodworm:4500,spirulina:18000,autoDispenser:300000,cosmicKrill:2500000,basicFilter:80,ledLight:450,thermometer:1800,premiumSub:6000,circPump:20000,ditherFish:80000,waterMonitor:350000,floatBall:150,puzzleFeeder:600,tinyLibrary:2500,musicPlayer:9000,currentSwirl:35000,trophyShelf:15000000,enhancedGills:500,regenMeta:2000,percGaze:8000,bubbleBreath:30000,neotenOpt:120000,genomePro:500000,radiantAura:10000000,legendPotential:500000000},
+    helpers: [
+      {id:'snorkel',   baseBps:1,    unlockCost:100,    upgradeCosts:[200,500,2000],             upgradeMults:[2,5,12]},
+      {id:'shrimply',  baseBps:8,    unlockCost:600,    upgradeCosts:[1200,4000,18000],          upgradeMults:[3,6,15]},
+      {id:'clawdia',   baseBps:47,   unlockCost:4000,   upgradeCosts:[8000,25000,100000],        upgradeMults:[4,9,20]},
+      {id:'puffington',baseBps:260,  unlockCost:25000,  upgradeCosts:[50000,150000,600000],      upgradeMults:[5,11,28]},
+      {id:'inky',      baseBps:1400, unlockCost:150000, upgradeCosts:[300000,900000,4000000],    upgradeMults:[6,14,35]},
+      {id:'oracle',    baseBps:9800, unlockCost:1200000,upgradeCosts:[2500000,8000000,30000000], upgradeMults:[7,18,50]},
+    ],
+    driftCosts: {memoryOfTheWater:5,ancientGills:8,wisdomOfThousands:12,pearlEcho:18,gillFrondLegacy:25,theDriftCurrent:35,infiniteWaters:50},
+    starting: {hungerDrain:8,happinessDrain:5,cleanlinessDrain:6,enrichmentDrain:4,feedBonus:40,offlineMultiplier:0.5,feedCooldownMs:7200000,cleanCooldownMs:9000000,playCooldownMs:5400000},
+  },
+  balanced: {
+    bubbleGates:   {HATCHLING:5e4, JUVENILE:2e6, ADULT:5e7, ELDER:5e9, LEGEND:2e11},
+    upgradeCosts:  {premiumPellet:500,algaeWafer:2000,bubbleBrine:8000,bloodworm:30000,spirulina:120000,autoDispenser:2000000,cosmicKrill:20000000,basicFilter:500,ledLight:3000,thermometer:12000,premiumSub:45000,circPump:150000,ditherFish:600000,waterMonitor:2500000,floatBall:1000,puzzleFeeder:4000,tinyLibrary:18000,musicPlayer:65000,currentSwirl:250000,trophyShelf:100000000,enhancedGills:3500,regenMeta:14000,percGaze:55000,bubbleBreath:200000,neotenOpt:800000,genomePro:3500000,radiantAura:75000000,legendPotential:5000000000},
+    helpers: [
+      {id:'snorkel',   baseBps:1,    unlockCost:500,      upgradeCosts:[1000,3000,15000],           upgradeMults:[2,5,12]},
+      {id:'shrimply',  baseBps:8,    unlockCost:4000,     upgradeCosts:[8000,25000,120000],          upgradeMults:[3,6,15]},
+      {id:'clawdia',   baseBps:47,   unlockCost:30000,    upgradeCosts:[60000,200000,800000],        upgradeMults:[4,9,20]},
+      {id:'puffington',baseBps:260,  unlockCost:200000,   upgradeCosts:[400000,1200000,5000000],     upgradeMults:[5,11,28]},
+      {id:'inky',      baseBps:1400, unlockCost:1200000,  upgradeCosts:[2500000,8000000,35000000],   upgradeMults:[6,14,35]},
+      {id:'oracle',    baseBps:9800, unlockCost:10000000, upgradeCosts:[20000000,65000000,250000000],upgradeMults:[7,18,50]},
+    ],
+    driftCosts: {memoryOfTheWater:5,ancientGills:8,wisdomOfThousands:12,pearlEcho:18,gillFrondLegacy:25,theDriftCurrent:35,infiniteWaters:50},
+    starting: {hungerDrain:8,happinessDrain:5,cleanlinessDrain:6,enrichmentDrain:4,feedBonus:40,offlineMultiplier:0.5,feedCooldownMs:7200000,cleanCooldownMs:9000000,playCooldownMs:5400000},
+  },
+  hardcore: {
+    bubbleGates:   {HATCHLING:5e5, JUVENILE:5e7, ADULT:5e9, ELDER:5e11, LEGEND:5e13},
+    upgradeCosts:  {premiumPellet:2000,algaeWafer:10000,bubbleBrine:50000,bloodworm:200000,spirulina:800000,autoDispenser:15000000,cosmicKrill:150000000,basicFilter:2000,ledLight:15000,thermometer:80000,premiumSub:300000,circPump:1000000,ditherFish:4000000,waterMonitor:20000000,floatBall:5000,puzzleFeeder:25000,tinyLibrary:120000,musicPlayer:500000,currentSwirl:2000000,trophyShelf:1000000000,enhancedGills:20000,regenMeta:100000,percGaze:400000,bubbleBreath:1500000,neotenOpt:6000000,genomePro:25000000,radiantAura:600000000,legendPotential:50000000000},
+    helpers: [
+      {id:'snorkel',   baseBps:1,    unlockCost:2000,     upgradeCosts:[5000,20000,100000],            upgradeMults:[2,5,12]},
+      {id:'shrimply',  baseBps:8,    unlockCost:20000,    upgradeCosts:[50000,200000,1000000],          upgradeMults:[3,6,15]},
+      {id:'clawdia',   baseBps:47,   unlockCost:200000,   upgradeCosts:[500000,2000000,8000000],        upgradeMults:[4,9,20]},
+      {id:'puffington',baseBps:260,  unlockCost:2000000,  upgradeCosts:[5000000,15000000,60000000],     upgradeMults:[5,11,28]},
+      {id:'inky',      baseBps:1400, unlockCost:15000000, upgradeCosts:[30000000,100000000,400000000],  upgradeMults:[6,14,35]},
+      {id:'oracle',    baseBps:9800, unlockCost:120000000,upgradeCosts:[250000000,800000000,3000000000],upgradeMults:[7,18,50]},
+    ],
+    driftCosts: {memoryOfTheWater:8,ancientGills:15,wisdomOfThousands:25,pearlEcho:35,gillFrondLegacy:50,theDriftCurrent:70,infiniteWaters:100},
+    starting: {hungerDrain:8,happinessDrain:5,cleanlinessDrain:6,enrichmentDrain:4,feedBonus:40,offlineMultiplier:0.35,feedCooldownMs:7200000,cleanCooldownMs:9000000,playCooldownMs:5400000},
+  },
+};
+
+// ══════════════════════════════════════════════
+// RENDER UI
+// ══════════════════════════════════════════════
+function fmt(n) {
+  if (n >= 1e12) return (n/1e12).toFixed(2)+'T';
+  if (n >= 1e9)  return (n/1e9).toFixed(2)+'B';
+  if (n >= 1e6)  return (n/1e6).toFixed(2)+'M';
+  if (n >= 1e3)  return (n/1e3).toFixed(1)+'K';
+  return n.toString();
+}
+
+function numInput(val, key, path) {
+  return `<input type="number" value="${val}" step="any" 
+    onchange="setVal('${path}',${JSON.stringify(key)},this.value)" 
+    oninput="setVal('${path}',${JSON.stringify(key)},this.value)">`;
+}
+
+function setVal(path, key, rawVal) {
+  const v = parseFloat(rawVal);
+  if (isNaN(v)) return;
+  if (path === 'bubbleGates')   ECONOMY.bubbleGates[key] = v;
+  if (path === 'upgradeCosts')  ECONOMY.upgradeCosts[key] = v;
+  if (path === 'driftCosts')    ECONOMY.driftCosts[key] = v;
+  if (path === 'starting')      ECONOMY.starting[key] = v;
+  if (path.startsWith('helper_')) {
+    const [,hid,field,idx] = path.split('_');
+    const h = ECONOMY.helpers.find(x=>x.id===hid);
+    if (!h) return;
+    if (field === 'baseBps')    h.baseBps = v;
+    if (field === 'unlockCost') h.unlockCost = v;
+    if (field === 'upCost')     h.upgradeCosts[parseInt(idx)] = v;
+    if (field === 'upMult')     h.upgradeMults[parseInt(idx)] = v;
+  }
+  updateSimulator();
+  setStatus('Edited — not yet compiled');
+}
+
+function renderStages() {
+  const gates = ECONOMY.bubbleGates;
+  const stages = ['HATCHLING','JUVENILE','ADULT','ELDER','LEGEND'];
+  const icons = {HATCHLING:'🐣',JUVENILE:'🦎',ADULT:'🐊',ELDER:'✨',LEGEND:'🌟'};
+  const bps = ECONOMY.stageBpsBonus;
+  const clk = ECONOMY.stageClickBonus;
+  const tbody = document.getElementById('stages-tbody');
+  tbody.innerHTML = stages.map(s => `<tr>
+    <td><div class="row-label">${icons[s]} ${s}</div></td>
+    <td>${numInput(gates[s], s, 'bubbleGates')}</td>
+    <td><span style="color:var(--aqua);font-family:'Space Mono',monospace;font-size:12px;">×${bps[s]}</span></td>
+    <td><span style="color:var(--mint);font-family:'Space Mono',monospace;font-size:12px;">×${clk[s]}</span></td>
+  </tr>`).join('');
+}
+
+function renderUpgrades() {
+  const costs = ECONOMY.upgradeCosts;
+  const catColors = {feeding:'#FFB347',habitat:'#6ECFE8',enrichment:'#7ADBB8',axolotl:'#F9B8D8'};
+  const tbody = document.getElementById('upgrades-tbody');
+  tbody.innerHTML = UPGRADE_META.map(u => `<tr>
+    <td>
+      <div class="row-label">${u.name}</div>
+    </td>
+    <td><span style="font-family:'Space Mono',monospace;font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,.06);color:${catColors[u.cat]}">${u.cat}</span></td>
+    <td>${numInput(costs[u.id], u.id, 'upgradeCosts')}</td>
+    <td><span class="badge ${u.mult?'badge-mult':'badge-add'}">${u.mult?'×MULT':'ADDITIVE'}</span></td>
+  </tr>`).join('');
+}
+
+function renderHelpers() {
+  const tbody = document.getElementById('helpers-tbody');
+  tbody.innerHTML = ECONOMY.helpers.map(h => `<tr>
+    <td><div class="row-label">${HELPER_META[h.id]}</div></td>
+    <td>${numInput(h.baseBps, 'baseBps', `helper_${h.id}_baseBps_0`)}</td>
+    <td>${numInput(h.unlockCost, 'unlockCost', `helper_${h.id}_unlockCost_0`)}</td>
+    <td>${numInput(h.upgradeCosts[0], 0, `helper_${h.id}_upCost_0`)}</td>
+    <td>${numInput(h.upgradeCosts[1], 1, `helper_${h.id}_upCost_1`)}</td>
+    <td>${numInput(h.upgradeCosts[2], 2, `helper_${h.id}_upCost_2`)}</td>
+    <td>${numInput(h.upgradeMults[0], 0, `helper_${h.id}_upMult_0`)}</td>
+    <td>${numInput(h.upgradeMults[1], 1, `helper_${h.id}_upMult_1`)}</td>
+    <td>${numInput(h.upgradeMults[2], 2, `helper_${h.id}_upMult_2`)}</td>
+  </tr>`).join('');
+}
+
+function renderDrift() {
+  const tbody = document.getElementById('drift-tbody');
+  tbody.innerHTML = Object.entries(ECONOMY.driftCosts).map(([k,v]) => `<tr>
+    <td><div class="row-label">🪬 ${DRIFT_META[k]}</div></td>
+    <td>${numInput(v, k, 'driftCosts')}</td>
+  </tr>`).join('');
+}
+
+function renderStarting() {
+  const tbody = document.getElementById('starting-tbody');
+  tbody.innerHTML = Object.entries(ECONOMY.starting).map(([k,v]) => `<tr>
+    <td><div class="row-label">${STARTING_META[k].label}</div></td>
+    <td>${numInput(v, k, 'starting')}</td>
+    <td><span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);">${STARTING_META[k].unit}</span></td>
+  </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// LIVE SIMULATOR
+// ══════════════════════════════════════════════
+function computeMaxBps() {
+  // Max all helpers
+  let helperBps = 0;
+  ECONOMY.helpers.forEach(h => {
+    let r = h.baseBps;
+    h.upgradeMults.forEach(m => r *= m);
+    helperBps += r;
+  });
+
+  // Rough multiplier stack (all upgrades purchased)
+  const gm = 1.15 * 1.25 * 1.05 * 1.30 * 1.35; // globalMult
+  const hm = 1.20; // helperMult
+  const hbm = 1.10 * 1.18 * 1.12; // habitatMult
+  const fm = 1.15 * 1.25 * 1.50; // feedMult
+  const em = 1.08; // enrichMult
+  const sm = 180; // legend stage
+  const mm = 2.0; // radiant mood
+
+  return helperBps * gm * hm * hbm * fm * em * sm * mm;
+}
+
+function updateSimulator() {
+  const gates = ECONOMY.bubbleGates;
+  const stages = ['HATCHLING','JUVENILE','ADULT','ELDER','LEGEND'];
+  const icons = {HATCHLING:'🐣',JUVENILE:'🦎',ADULT:'🐊',ELDER:'✨',LEGEND:'🌟'};
+
+  // Estimate realistic BPS at each gate
+  // Uses helper unlock costs to estimate which helpers are available
+  function estimateBpsAtGate(targetBubbles) {
+    let bps = 2; // baseline clicking
+    ECONOMY.helpers.forEach(h => {
+      if (h.unlockCost <= targetBubbles * 0.3) {
+        let r = h.baseBps;
+        // estimate upgrade level affordable
+        let upgLevel = 0;
+        h.upgradeCosts.forEach((c,i) => { if (c <= targetBubbles * 0.1) { r *= h.upgradeMults[i]; upgLevel++; } });
+        bps += r;
+      }
+    });
+    // Rough upgrade mult: 1.5x per 10 upgrades purchased
+    const upgradesBought = UPGRADE_META.filter(u => (ECONOMY.upgradeCosts[u.id]||0) <= targetBubbles * 0.05).length;
+    bps *= Math.pow(1.4, upgradesBought / 5);
+    // Stage bonus
+    const si = stages.indexOf(stages.find(s => gates[s] <= targetBubbles) || 'EGG');
+    if (si >= 0) bps *= [1,1.8,4.2,12,40][Math.min(si,4)] || 1;
+    return Math.max(2, bps);
+  }
+
+  let totalTime = 0;
+  let cumBubbles = 0;
+  const rows = [];
+
+  stages.forEach(stage => {
+    const gate = gates[stage];
+    const needed = gate - cumBubbles;
+    if (needed <= 0) { rows.push({stage, gate, timeMin:0, bps:0, skip:true}); return; }
+    const bps = estimateBpsAtGate(gate);
+    const timeMin = (needed / bps) / 60;
+    totalTime += timeMin;
+    cumBubbles = gate;
+    rows.push({stage, gate, timeMin, bps, skip:false});
+  });
+
+  const maxBps = computeMaxBps();
+  document.getElementById('max-bps-display').textContent = fmt(maxBps) + ' B/s';
+
+  const totalHrs = totalTime / 60;
+  const targetHrs = 10;
+  const pct = Math.min(100, (totalHrs / targetHrs) * 100);
+
+  let barColor = totalHrs < 8 ? 'var(--bad)' : totalHrs <= 12 ? 'var(--good)' :
+                 totalHrs <= 20 ? 'var(--warn)' : 'var(--purple)';
+  let totalClass = totalHrs < 8 ? 'bad' : totalHrs <= 12 ? 'good' : totalHrs <= 20 ? 'warn' : '';
+
+  const stageHTML = rows.map(r => {
+    if (r.skip) return '';
+    const hrs = r.timeMin / 60;
+    const stageClass = hrs < 0.5 ? 'bad' : hrs < 1.5 ? 'warn' : 'good';
+    return `<div class="sim-stage">
+      <div class="sim-stage-name" style="color:var(--text)">${icons[r.stage]} ${r.stage}</div>
+      <div class="sim-row"><span>Gate</span><span class="val">${fmt(r.gate)} B</span></div>
+      <div class="sim-row"><span>Est. B/s at gate</span><span class="val">${fmt(r.bps)}/s</span></div>
+      <div class="sim-row"><span>Time to reach</span><span class="val ${stageClass}">${r.timeMin < 60 ? r.timeMin.toFixed(1)+' min' : (r.timeMin/60).toFixed(1)+' hr'}</span></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('sim-output').innerHTML = `
+    ${stageHTML}
+    <div class="sim-total">
+      <div class="label">Estimated total time to Legend</div>
+      <div class="big ${totalClass}">${totalHrs.toFixed(1)} hours</div>
+      <div class="target-bar">
+        <div class="target-bar-fill" style="width:${pct}%;background:${barColor}"></div>
+      </div>
+      <div class="target-label"><span>0</span><span style="color:${barColor}">${totalHrs.toFixed(1)}h</span><span>10h target</span></div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════
+// PRESETS
+// ══════════════════════════════════════════════
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+  Object.assign(ECONOMY.bubbleGates, p.bubbleGates);
+  Object.assign(ECONOMY.upgradeCosts, p.upgradeCosts);
+  ECONOMY.helpers = JSON.parse(JSON.stringify(p.helpers));
+  Object.assign(ECONOMY.driftCosts, p.driftCosts);
+  Object.assign(ECONOMY.starting, p.starting);
+  renderAll();
+  setStatus(`Preset "${name}" applied — not yet compiled`);
+}
+
+// ══════════════════════════════════════════════
+// COMPILE — generate patch text
+// ══════════════════════════════════════════════
+function compile() {
+  const E = ECONOMY;
+  const g = E.bubbleGates;
+  const uc = E.upgradeCosts;
+  const sc = E.starting;
+
+  // Build the exact replacement strings for each const block
+  const stagesBlock = `const STAGES = [
+  { id:'EGG',      label:'🥚 Egg',       minDays:0,  bpsBonus:1.0,  clickBonus:1.0  },
+  { id:'HATCHLING',label:'🐣 Hatchling', minDays:1,  bpsBonus:1.8,  clickBonus:1.5  },
+  { id:'JUVENILE', label:'🦎 Juvenile',  minDays:4,  bpsBonus:4.2,  clickBonus:3.0  },
+  { id:'ADULT',    label:'🐊 Adult',     minDays:11, bpsBonus:12,   clickBonus:8.0  },
+  { id:'ELDER',    label:'✨ Elder',     minDays:26, bpsBonus:40,   clickBonus:22   },
+  { id:'LEGEND',   label:'🌟 Legend',    minDays:41, bpsBonus:180,  clickBonus:80   }
+];`;
+
+  const upgradesBlock = `const UPGRADES = [
+  // FEEDING
+  { id:'premiumPellet',   cat:'feeding',    name:'Premium Pellet Mix',       icon:'🦐', cost:${uc.premiumPellet},     desc:'Each feeding restores +10 extra Hunger. A delicacy.',         effect:()=>{ G.feedBonus+=10; }, mult:false },
+  { id:'algaeWafer',      cat:'feeding',    name:'Algae Wafer Supplement',   icon:'🌿', cost:${uc.algaeWafer},     desc:'Hunger drains 2pts/hr slower. Snack between meals.',          effect:()=>{ G.drainRates.hunger=Math.max(1,G.drainRates.hunger-2); }, mult:false },
+  { id:'bubbleBrine',     cat:'feeding',    name:'Bubble-Infused Brine Shrimp',icon:'🫧',cost:${uc.bubbleBrine},  desc:'B/s ×1.15 when Hunger > 80%. High quality food = high quality Bubbles.',effect:()=>{ G.feedMult*=1.15; }, mult:true },
+  { id:'bloodworm',       cat:'feeding',    name:'Bloodworm Luxury Pack',    icon:'🍖', cost:${uc.bloodworm},    desc:'Feeding restores 2.5× more Hunger. Axolotl spins with joy.',  effect:()=>{ G.feedBonus*=2.5; }, mult:true },
+  { id:'spirulina',       cat:'feeding',    name:'Spirulina Growth Booster', icon:'🌾', cost:${uc.spirulina},   desc:'Global B/s ×1.25 whenever Hunger > 60%.',                    effect:()=>{ G.feedMult*=1.25; }, mult:true },
+  { id:'autoDispenser',   cat:'feeding',    name:'Automatic Food Dispenser', icon:'🏪', cost:${uc.autoDispenser},  desc:'Auto-feeds every 2 real hours. Hunger never falls below 25.', effect:()=>{ G.autoFeed=true; }, mult:false },
+  { id:'cosmicKrill',     cat:'feeding',    name:'Cosmic Krill Formula',     icon:'🌟', cost:${uc.cosmicKrill}, desc:'Global B/s ×1.5 when Hunger > 90%. The axolotl shimmers.',   effect:()=>{ G.feedMult*=1.5; }, mult:true },
+
+  { id:'basicFilter',     cat:'habitat',    name:'Basic Filter Unit',        icon:'🔵', cost:${uc.basicFilter},      desc:'Cleanliness drains 1pt/hr slower. The axolotl named it Gerald.',effect:()=>{ G.drainRates.cleanliness=Math.max(1,G.drainRates.cleanliness-1); }, mult:false },
+  { id:'ledLight',        cat:'habitat',    name:'LED Spectrum Light Bar',   icon:'💡', cost:${uc.ledLight},     desc:'B/s ×1.10 during daytime hours (7AM-7PM).',                  effect:()=>{ G.habitatMult*=1.10; }, mult:true },
+  { id:'thermometer',     cat:'habitat',    name:'Precision Thermometer',    icon:'🌡️', cost:${uc.thermometer},   desc:'All need drains -5% with 3+ decorations placed.',            effect:()=>{ G.thermoBonus=true; }, mult:false },
+  { id:'premiumSub',      cat:'habitat',    name:'Premium Substrate Layer',  icon:'🪨', cost:${uc.premiumSub},    desc:'Helper Bubbles ×1.20. Snorkel moves 30% faster (visually).',  effect:()=>{ G.helperMult*=1.20; }, mult:true },
+  { id:'circPump',        cat:'habitat',    name:'Powerhead Circulation Pump',icon:'🌊',cost:${uc.circPump},  desc:'All B/s ×1.18. Adds beautiful water current animation.',      effect:()=>{ G.habitatMult*=1.18; }, mult:true },
+  { id:'ditherFish',      cat:'habitat',    name:'Dither Fish School',       icon:'🐠', cost:${uc.ditherFish},   desc:'5 tiny fish appear in background. Enrichment drains 2pt/hr slower.',effect:()=>{ G.drainRates.enrichment=Math.max(0.5,G.drainRates.enrichment-2); renderHelpers(); }, mult:false },
+  { id:'waterMonitor',    cat:'habitat',    name:'Water Quality Monitor',    icon:'🔬', cost:${uc.waterMonitor},  desc:'Global ×1.12 when all needs > 70%.',                         effect:()=>{ G.habitatMult*=1.12; }, mult:true },
+
+  { id:'floatBall',       cat:'enrichment', name:'Floating Ball Toy',        icon:'🎱', cost:${uc.floatBall},     desc:'Enrichment drains 1pt/hr slower. Axolotl headbutts it constantly.',effect:()=>{ G.drainRates.enrichment=Math.max(0.5,G.drainRates.enrichment-1); }, mult:false },
+  { id:'puzzleFeeder',    cat:'enrichment', name:'Enrichment Puzzle Feeder', icon:'🧩', cost:${uc.puzzleFeeder},     desc:'Activities give +5 Enrichment bonus. Learning to eat is learning.',effect:()=>{ G.actEnrichBonus+=5; }, mult:false },
+  { id:'tinyLibrary',     cat:'enrichment', name:'Tiny Library Corner',      icon:'📚', cost:${uc.tinyLibrary},    desc:'Studious bonus ×1.5 if applicable. Personality Journal early.',effect:()=>{ G.libraryUnlocked=true; }, mult:false },
+  { id:'musicPlayer',     cat:'enrichment', name:'Ambient Music Player',     icon:'🎵', cost:${uc.musicPlayer},    desc:'Happiness drains 2pt/hr slower. B/s ×1.08.',                 effect:()=>{ G.drainRates.happiness=Math.max(0.5,G.drainRates.happiness-2); G.enrichMult*=1.08; }, mult:true },
+  { id:'currentSwirl',    cat:'enrichment', name:'Current Swirl Generator',  icon:'🌀', cost:${uc.currentSwirl},   desc:'All activities give +10% more need restoration.',            effect:()=>{ G.activityBonus*=1.10; }, mult:true },
+  { id:'trophyShelf',     cat:'enrichment', name:'Trophy Shelf',             icon:'🏆', cost:${uc.trophyShelf},desc:'Each achievement unlocked adds +0.5% to global B/s permanently.',effect:()=>{ G.trophyShelfUnlocked=true; }, mult:false },
+
+  { id:'enhancedGills',   cat:'axolotl',    name:'Enhanced Gill Fronds',     icon:'🫧', cost:${uc.enhancedGills},     desc:'B/s ×1.15. Click value ×1.10. More expressive gill fronds.',   effect:()=>{ G.globalMult*=1.15; G.clickMult*=1.10; animateGillFlare(); }, mult:true },
+  { id:'regenMeta',       cat:'axolotl',    name:'Regenerative Metabolism',  icon:'💪', cost:${uc.regenMeta},    desc:'All need drain rates -10% globally. Biology extended to feelings.',effect:()=>{ G.drainRates.hunger*=0.9; G.drainRates.happiness*=0.9; G.drainRates.cleanliness*=0.9; G.drainRates.enrichment*=0.9; }, mult:false },
+  { id:'percGaze',        cat:'axolotl',    name:'Perceptive Gaze',          icon:'👁️', cost:${uc.percGaze},   desc:'Treasure Hunt yields ×1.5 Bubbles. Eyes sparkle permanently.',  effect:()=>{ G.treasureMult*=1.5; }, mult:true },
+  { id:'bubbleBreath',    cat:'axolotl',    name:'Bubble Breath Mastery',    icon:'🌊', cost:${uc.bubbleBreath},   desc:'Passive B/s ×1.25. Produces more economically valuable bubbles.',effect:()=>{ G.globalMult*=1.25; }, mult:true },
+  { id:'neotenOpt',       cat:'axolotl',    name:'Neoteny Optimization',     icon:'🦎', cost:${uc.neotenOpt},  desc:'Lifecycle B/s bonuses increased by +20%.',                   effect:()=>{ G.stageBoostExtra*=1.20; }, mult:true },
+  { id:'genomePro',       cat:'axolotl',    name:'Axolotl Genome Project',   icon:'🧬', cost:${uc.genomePro},  desc:'All multiplicative upgrades gain ×1.05 additional. Adds up.',   effect:()=>{ G.globalMult*=1.05; }, mult:true },
+  { id:'radiantAura',     cat:'axolotl',    name:'Radiant Aura Glow',        icon:'💫', cost:${uc.radiantAura},desc:'B/s ×1.30. Bioluminescent glow at Radiant mood. Beautiful.',    effect:()=>{ G.globalMult*=1.30; G.radiantAura=true; }, mult:true },
+  { id:'legendPotential', cat:'axolotl',    name:'Legend Potential Unlocked',icon:'🌌', cost:${uc.legendPotential},desc:'All Axolotl Upgrades ×1.35. Unlocks Elder→Legend transition!', effect:()=>{ G.globalMult*=1.35; G.legendUnlocked=true; }, mult:true },
+];`;
+
+  const helpersBlock = `const HELPERS = [
+${E.helpers.map(h => `  { id:'${h.id}', ${h.id==='snorkel'?`name:'Snorkel the Snail',      icon:'🐌'`:h.id==='shrimply'?`name:'Shrimply the Shrimp',    icon:'🦐'`:h.id==='clawdia'?`name:'Clawdia the Crab',       icon:'🦀'`:h.id==='puffington'?`name:'Puffington the Pufferfish',icon:'🐡'`:h.id==='inky'?`name:'Inky the Squid',         icon:'🦑'`:`name:'Oracle the Octopus',     icon:'🐙'`}, baseBps:${h.baseBps}, unlockCost:${h.unlockCost}, upgradeCosts:[${h.upgradeCosts.join(',')}], upgradeMults:[${h.upgradeMults.join(',')}], desc:'${h.id==='snorkel'?'Slow, methodical. Has tiny diving mask.':h.id==='shrimply'?'Hyperactive. Darts around. Best friends with Snorkel.':h.id==='clawdia'?'Businesslike. Carries a tiny briefcase.':h.id==='puffington'?'Accidentally inflates when startled. Sweet.':h.id==='inky'?'Paints murals on tank glass. Artistic.':'Ancient. All-knowing. Rarely visible.'}', x:${h.id==='snorkel'?15:h.id==='shrimply'?78:h.id==='clawdia'?25:h.id==='puffington'?65:h.id==='inky'?42:55} },`).join('\n')}
+];`;
+
+  const dc = E.driftCosts;
+  const driftBlock = `    { id:'memoryOfTheWater', name:'Memory of the Water', cost:${dc.memoryOfTheWater},  desc:'Offline rate +10%',           effect:()=>{ G.driftTree.memoryOfTheWater=true; } },
+    { id:'ancientGills',     name:'Ancient Gills',       cost:${dc.ancientGills},  desc:'Start new runs at 2× base B/s',effect:()=>{ G.driftTree.ancientGills=true; } },
+    { id:'wisdomOfThousands',name:'Wisdom of Thousands', cost:${dc.wisdomOfThousands}, desc:'All upgrade costs -15%',       effect:()=>{ G.driftTree.wisdomOfThousands=true; } },
+    { id:'pearlEcho',        name:'Pearl Echo',          cost:${dc.pearlEcho}, desc:'Pearl earnings per Drift +20%',effect:()=>{ G.driftTree.pearlEcho=true; } },
+    { id:'gillFrondLegacy',  name:'Gill Frond Legacy',   cost:${dc.gillFrondLegacy}, desc:'Lifecycle B/s bonuses ×1.5',   effect:()=>{ G.driftTree.gillFrondLegacy=true; } },
+    { id:'theDriftCurrent',  name:'The Drift Current',   cost:${dc.theDriftCurrent}, desc:'Offline cap raised to ~full rate', effect:()=>{ G.driftTree.theDriftCurrent=true; } },
+    { id:'infiniteWaters',   name:'Infinite Waters',     cost:${dc.infiniteWaters}, desc:'All B/s ×2 permanently',       effect:()=>{ G.driftTree.infiniteWaters=true; } },`;
+
+  const bubblesGateBlock = `  const bubbleGates = {
+    HATCHLING: ${g.HATCHLING},
+    JUVENILE:  ${g.JUVENILE},
+    ADULT:     ${g.ADULT},
+    ELDER:     ${g.ELDER},
+    LEGEND:    ${g.LEGEND},
+  };`;
+
+  const drainRatesBlock = `    drainRates:{ hunger:${sc.hungerDrain}, happiness:${sc.happinessDrain}, cleanliness:${sc.cleanlinessDrain}, enrichment:${sc.enrichmentDrain} },`;
+  const feedBonusNote = `    feedBonus:${sc.feedBonus},   // starting feed restore amount`;
+
+  const output = `// ════════════════════════════════════════════════════════
+// COMPILED BY ECONOMY EDITOR — ${new Date().toLocaleString()}
+// ════════════════════════════════════════════════════════
+//
+// HOW TO APPLY:
+// 1. In AxoLottaFun_Game.html, find and replace:
+//    - const STAGES = [ ... ];          → STAGES BLOCK
+//    - const UPGRADES = [ ... ];        → UPGRADES BLOCK
+//    - const HELPERS = [ ... ];         → HELPERS BLOCK
+//    - const bubbleGates = { ... };     → BUBBLE GATES BLOCK (in checkLifecycle())
+//    - drainRates:{ ... },              → DRAIN RATES LINE (in newGameState())
+//    - The drift upgrade cost numbers   → DRIFT COSTS BLOCK (in openDriftTreeUI())
+//    - feedBonus initial value          → FEED BONUS (in newGameState())
+//
+// ──────────────────────────────────────────────────────────
+
+// ── STAGES BLOCK ──────────────────────────────────────────
+${stagesBlock}
+
+// ── UPGRADES BLOCK ────────────────────────────────────────
+${upgradesBlock}
+
+// ── HELPERS BLOCK ─────────────────────────────────────────
+${helpersBlock}
+
+// ── BUBBLE GATES BLOCK (replace in checkLifecycle()) ──────
+${bubblesGateBlock}
+
+// ── DRAIN RATES (replace in newGameState()) ───────────────
+${drainRatesBlock}
+
+// ── STARTING FEED BONUS (replace feedBonus: in newGameState()) ──
+${feedBonusNote}
+
+// ── DRIFT TREE COSTS (replace cost: values in openDriftTreeUI()) ──
+${driftBlock}`;
+
+  document.getElementById('modal-output').value = output;
+  document.getElementById('modal-overlay').classList.add('show');
+  setStatus('Compiled ✓ — copy and paste into game file');
+}
+
+function copyPatch() {
+  const ta = document.getElementById('modal-output');
+  ta.select();
+  document.execCommand('copy');
+  navigator.clipboard?.writeText(ta.value).catch(()=>{});
+  document.getElementById('modal-copy').textContent = '✅ Copied!';
+  setTimeout(()=>{ document.getElementById('modal-copy').textContent = '📋 Copy to Clipboard'; }, 2000);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+function setStatus(msg) {
+  document.getElementById('status-pill').textContent = msg;
+}
+
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  const collapsed = body.classList.toggle('collapsed');
+  header.classList.toggle('collapsed', collapsed);
+}
+
+function renderAll() {
+  renderStages();
+  renderUpgrades();
+  renderHelpers();
+  renderDrift();
+  renderStarting();
+  updateSimulator();
+}
+
+// Boot with balanced preset applied
+applyPreset('balanced');
+</script>
+</body>
+</html>
