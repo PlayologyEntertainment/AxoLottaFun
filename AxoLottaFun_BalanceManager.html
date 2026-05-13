@@ -1,0 +1,3085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AxoLottaFun — Balance Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-0: #050a14;
+    --bg-1: #0a1424;
+    --bg-2: #0f1d33;
+    --bg-3: #142948;
+    --panel: rgba(20, 41, 72, 0.55);
+    --panel-solid: #142948;
+    --border: rgba(120, 200, 230, 0.18);
+    --border-strong: rgba(120, 200, 230, 0.42);
+    --aqua: #5fd0e8;
+    --aqua-light: #aceaf6;
+    --aqua-dark: #2a8aa8;
+    --pink: #f9b8d8;
+    --pink-deep: #e08fb6;
+    --gold: #ffd166;
+    --gold-deep: #f0a830;
+    --pearl: #b48fd4;
+    --leaf: #8ed6a3;
+    --coral: #ff8e7a;
+    --rust: #d96a4a;
+    --text-0: #f0f8ff;
+    --text-1: #c4d7e8;
+    --text-2: #8aa3bd;
+    --text-3: #5a728c;
+    --good: #6cd99e;
+    --warn: #f5b347;
+    --bad: #f06868;
+    --shadow-glow: 0 0 40px rgba(95, 208, 232, 0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg-0);
+    background-image:
+      radial-gradient(ellipse 80% 60% at 20% -10%, rgba(95, 208, 232, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 70% 50% at 90% 110%, rgba(180, 143, 212, 0.06) 0%, transparent 55%),
+      radial-gradient(ellipse 50% 40% at 50% 50%, rgba(20, 41, 72, 0.6) 0%, transparent 80%);
+    color: var(--text-0);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* Caustic light pattern */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(120deg, transparent 0 80px, rgba(95, 208, 232, 0.012) 80px 81px),
+      repeating-linear-gradient(60deg, transparent 0 60px, rgba(180, 143, 212, 0.01) 60px 61px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── LAYOUT ─────────────────────────────── */
+  .app {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "topbar topbar"
+      "sidebar main";
+    min-height: 100vh;
+  }
+
+  .topbar {
+    grid-area: topbar;
+    background: linear-gradient(180deg, rgba(10, 20, 36, 0.95) 0%, rgba(15, 29, 51, 0.85) 100%);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 38px; height: 38px;
+    border-radius: 11px;
+    background: radial-gradient(circle at 30% 30%, var(--aqua) 0%, var(--aqua-dark) 100%);
+    box-shadow: 0 0 24px rgba(95, 208, 232, 0.35), inset 0 -4px 8px rgba(0,0,0,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .brand-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 18px;
+    letter-spacing: 0.01em;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .topbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .file-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-2);
+    padding: 6px 12px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  .file-status.loaded { color: var(--good); border-color: rgba(108, 217, 158, 0.3); }
+  .file-status.dirty { color: var(--gold); border-color: rgba(255, 209, 102, 0.3); }
+
+  /* Buttons */
+  .btn {
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    color: var(--text-0);
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.01em;
+  }
+  .btn:hover {
+    background: rgba(40, 75, 120, 0.7);
+    border-color: var(--aqua);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn-primary {
+    background: linear-gradient(180deg, var(--aqua) 0%, var(--aqua-dark) 100%);
+    border-color: var(--aqua);
+    color: #051018;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(95, 208, 232, 0.25);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(180deg, var(--aqua-light) 0%, var(--aqua) 100%);
+    color: #051018;
+  }
+  .btn-gold {
+    background: linear-gradient(180deg, var(--gold) 0%, var(--gold-deep) 100%);
+    border-color: var(--gold);
+    color: #2a1808;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(255, 209, 102, 0.2);
+  }
+  .btn-gold:hover {
+    filter: brightness(1.1);
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+  }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  .btn-danger {
+    background: rgba(240, 104, 104, 0.12);
+    border-color: rgba(240, 104, 104, 0.35);
+    color: var(--bad);
+  }
+  .btn-danger:hover {
+    background: rgba(240, 104, 104, 0.2);
+    border-color: var(--bad);
+  }
+
+  /* ─── SIDEBAR ────────────────────────────── */
+  .sidebar {
+    grid-area: sidebar;
+    background: linear-gradient(180deg, rgba(10, 20, 36, 0.6) 0%, rgba(5, 10, 20, 0.4) 100%);
+    border-right: 1px solid var(--border);
+    padding: 20px 14px;
+    overflow-y: auto;
+    position: sticky;
+    top: 71px;
+    height: calc(100vh - 71px);
+  }
+  .nav-group-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 14px 12px 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 9px;
+    color: var(--text-1);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.12s ease;
+    position: relative;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover {
+    background: rgba(95, 208, 232, 0.06);
+    color: var(--text-0);
+  }
+  .nav-item.active {
+    background: linear-gradient(90deg, rgba(95, 208, 232, 0.18) 0%, rgba(95, 208, 232, 0.04) 100%);
+    color: var(--aqua-light);
+  }
+  .nav-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 8px; bottom: 8px;
+    width: 3px;
+    background: var(--aqua);
+    border-radius: 0 3px 3px 0;
+    box-shadow: 0 0 8px rgba(95, 208, 232, 0.6);
+  }
+  .nav-icon {
+    width: 20px;
+    text-align: center;
+    font-size: 15px;
+  }
+  .nav-badge {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-3);
+    background: rgba(255,255,255,0.04);
+    padding: 2px 6px;
+    border-radius: 5px;
+  }
+
+  /* ─── MAIN ───────────────────────────────── */
+  .main {
+    grid-area: main;
+    padding: 28px 36px 80px;
+    min-width: 0;
+  }
+  .page { display: none; }
+  .page.active { display: block; animation: fadeIn 0.2s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .page-header {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .page-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 28px;
+    color: var(--text-0);
+    letter-spacing: 0.005em;
+    line-height: 1;
+  }
+  .page-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--aqua);
+    padding: 4px 10px;
+    background: rgba(95, 208, 232, 0.08);
+    border-radius: 6px;
+    letter-spacing: 0.12em;
+    border: 1px solid rgba(95, 208, 232, 0.2);
+  }
+  .page-desc {
+    flex: 1;
+    min-width: 300px;
+    color: var(--text-2);
+    font-size: 13px;
+    margin-left: auto;
+    text-align: right;
+    max-width: 520px;
+  }
+
+  /* ─── EMPTY STATE ─────────────────────────── */
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    flex-direction: column;
+    gap: 24px;
+    text-align: center;
+    padding: 40px;
+  }
+  .empty-mark {
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--aqua) 0%, var(--aqua-dark) 50%, rgba(15, 29, 51, 0.4) 80%);
+    box-shadow: 0 0 50px rgba(95, 208, 232, 0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px;
+    animation: bob 4s ease-in-out infinite;
+  }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .empty-state h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 26px;
+    color: var(--text-0);
+    margin-bottom: 4px;
+  }
+  .empty-state p {
+    color: var(--text-2);
+    font-size: 14px;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+  .file-drop {
+    border: 2px dashed var(--border-strong);
+    border-radius: 16px;
+    padding: 28px 32px;
+    background: rgba(20, 41, 72, 0.25);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    margin-top: 12px;
+  }
+  .file-drop:hover, .file-drop.drag {
+    border-color: var(--aqua);
+    background: rgba(95, 208, 232, 0.08);
+  }
+  .file-drop input { display: none; }
+  .file-drop strong {
+    color: var(--aqua-light);
+    font-weight: 700;
+  }
+
+  /* ─── CARDS / SECTIONS ──────────────────── */
+  .section {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px;
+    margin-bottom: 18px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 17px;
+    color: var(--text-0);
+    letter-spacing: 0.005em;
+  }
+  .section-sub {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    letter-spacing: 0.1em;
+  }
+  .section-note {
+    background: rgba(255, 209, 102, 0.06);
+    border-left: 3px solid var(--gold);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--text-1);
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 16px;
+  }
+  .section-note.aqua {
+    background: rgba(95, 208, 232, 0.06);
+    border-color: var(--aqua);
+  }
+
+  /* ─── FIELDS ─────────────────────────────── */
+  .field-grid {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .field-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .field-label small {
+    color: var(--text-3);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .field-hint {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 2px;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0;
+  }
+  .input, .select, .textarea {
+    background: rgba(5, 10, 20, 0.5);
+    border: 1px solid var(--border);
+    color: var(--text-0);
+    padding: 9px 12px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    width: 100%;
+    transition: all 0.12s ease;
+  }
+  .input:focus, .select:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--aqua);
+    background: rgba(5, 10, 20, 0.7);
+    box-shadow: 0 0 0 3px rgba(95, 208, 232, 0.12);
+  }
+  .input.changed {
+    border-color: var(--gold);
+    background: rgba(255, 209, 102, 0.04);
+  }
+  .input.changed:focus {
+    box-shadow: 0 0 0 3px rgba(255, 209, 102, 0.12);
+  }
+  .textarea {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  /* Table layout for list editors */
+  .row-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .row-item {
+    display: grid;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 14px;
+    background: rgba(5, 10, 20, 0.35);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.12s ease;
+  }
+  .row-item:hover {
+    border-color: var(--border-strong);
+    background: rgba(20, 41, 72, 0.4);
+  }
+  .row-item.changed {
+    border-color: rgba(255, 209, 102, 0.45);
+    background: rgba(255, 209, 102, 0.04);
+  }
+  .row-icon {
+    font-size: 22px;
+    width: 32px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .row-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 14px;
+    color: var(--text-0);
+    line-height: 1.3;
+  }
+  .row-cat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Stages */
+  .stages-row {
+    grid-template-columns: 36px 1.6fr 1fr 1fr 1fr;
+  }
+  /* Helpers */
+  .helpers-row {
+    grid-template-columns: 36px 1.4fr 1fr 1fr 1.6fr;
+  }
+  /* Upgrades */
+  .upgrades-row {
+    grid-template-columns: 36px 2fr 1fr 1fr;
+  }
+  /* Achievements */
+  .ach-row {
+    grid-template-columns: 1.7fr 1fr 0.8fr 0.6fr;
+  }
+
+  .mini-input {
+    background: rgba(5, 10, 20, 0.6);
+    border: 1px solid var(--border);
+    color: var(--text-0);
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    width: 100%;
+  }
+  .mini-input:focus {
+    outline: none;
+    border-color: var(--aqua);
+    box-shadow: 0 0 0 2px rgba(95, 208, 232, 0.15);
+  }
+  .mini-input.changed {
+    border-color: var(--gold);
+    background: rgba(255, 209, 102, 0.04);
+  }
+
+  .field-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field-stack-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  /* Category chips */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(5, 10, 20, 0.4);
+    border: 1px solid var(--border);
+    color: var(--text-1);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    letter-spacing: 0.02em;
+  }
+  .chip:hover { color: var(--text-0); border-color: var(--border-strong); }
+  .chip.active {
+    background: rgba(95, 208, 232, 0.15);
+    border-color: var(--aqua);
+    color: var(--aqua-light);
+  }
+  .chip-count {
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: 5px;
+    opacity: 0.6;
+  }
+
+  /* ─── SIMULATION PANEL ─────────────────── */
+  .sim-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .sim-stat {
+    background: rgba(5, 10, 20, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .sim-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-2);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .sim-stat-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    color: var(--aqua-light);
+    line-height: 1.1;
+  }
+  .sim-stat-value.gold { color: var(--gold); }
+  .sim-stat-value.pink { color: var(--pink); }
+  .sim-stat-value.leaf { color: var(--leaf); }
+  .sim-stat-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 4px;
+  }
+
+  /* Progression chart */
+  .prog-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .prog-name {
+    width: 110px;
+    font-size: 12px;
+    color: var(--text-1);
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .prog-track {
+    flex: 1;
+    height: 26px;
+    background: rgba(5, 10, 20, 0.5);
+    border-radius: 7px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--border);
+  }
+  .prog-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(90deg, var(--aqua-dark) 0%, var(--aqua) 100%);
+    border-radius: 6px;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .prog-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-0);
+    font-weight: 600;
+    z-index: 2;
+  }
+
+  /* ─── EXPORT MODAL ──────────────────────── */
+  .modal-back {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 8, 16, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-back.open { display: flex; animation: modalIn 0.18s ease-out; }
+  @keyframes modalIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--bg-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    padding: 28px 32px;
+    max-width: 640px;
+    width: 100%;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(95, 208, 232, 0.12);
+    animation: modalUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h3 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .modal p { color: var(--text-2); font-size: 13px; margin-bottom: 14px; }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .diff-list {
+    max-height: 320px;
+    overflow-y: auto;
+    background: rgba(5, 10, 20, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .diff-item {
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(120, 200, 230, 0.05);
+    color: var(--text-1);
+  }
+  .diff-item:last-child { border: none; }
+  .diff-old { color: var(--bad); }
+  .diff-arrow { color: var(--text-3); margin: 0 6px; }
+  .diff-new { color: var(--good); }
+  .diff-path { color: var(--aqua); margin-right: 8px; }
+
+  /* Toast */
+  .toast-area {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--bg-2);
+    border: 1px solid var(--border-strong);
+    color: var(--text-0);
+    padding: 12px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    animation: toastIn 0.22s ease-out;
+    pointer-events: auto;
+    max-width: 380px;
+  }
+  .toast.good { border-color: var(--good); }
+  .toast.bad { border-color: var(--bad); }
+  .toast.warn { border-color: var(--warn); }
+  @keyframes toastIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(95, 208, 232, 0.15);
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(95, 208, 232, 0.3); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; grid-template-areas: "topbar" "main"; }
+    .sidebar { display: none; }
+    .main { padding: 20px 16px; }
+    .stages-row, .helpers-row, .upgrades-row, .ach-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Floating action bar at bottom */
+  .float-action {
+    position: fixed;
+    bottom: 0; left: 260px; right: 0;
+    background: linear-gradient(180deg, rgba(10, 20, 36, 0.0) 0%, rgba(5, 10, 20, 0.95) 30%);
+    padding: 16px 36px;
+    display: none;
+    align-items: center;
+    gap: 12px;
+    z-index: 40;
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+  .float-action.visible { display: flex; }
+  .float-action-info {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-1);
+  }
+  .float-action-info strong { color: var(--gold); }
+  @media (max-width: 900px) {
+    .float-action { left: 0; padding: 12px 16px; }
+  }
+
+  /* Subtle decorative bubble dots */
+  .deco-bubble {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    border: 1px solid rgba(95, 208, 232, 0.12);
+    background: radial-gradient(circle at 35% 35%, rgba(95, 208, 232, 0.08) 0%, transparent 60%);
+    animation: floatBubble 20s ease-in-out infinite;
+  }
+  @keyframes floatBubble {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+    50% { transform: translateY(-30px) scale(1.08); opacity: 0.9; }
+  }
+</style>
+</head>
+<body>
+
+<!-- decorative bubbles -->
+<div class="deco-bubble" style="width: 80px; height: 80px; top: 18%; left: 4%; animation-delay: 0s;"></div>
+<div class="deco-bubble" style="width: 40px; height: 40px; top: 50%; right: 6%; animation-delay: 4s;"></div>
+<div class="deco-bubble" style="width: 24px; height: 24px; bottom: 12%; left: 8%; animation-delay: 8s;"></div>
+<div class="deco-bubble" style="width: 60px; height: 60px; top: 72%; right: 14%; animation-delay: 12s;"></div>
+
+<div class="app">
+
+  <!-- ── TOPBAR ───────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">🧪</div>
+      <div>
+        <div class="brand-title">Balance Manager</div>
+        <div class="brand-sub">AxoLottaFun · Playology</div>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+      <span id="file-status" class="file-status">No file loaded</span>
+      <button class="btn btn-ghost btn-sm" id="btn-load" title="Load game HTML">📂 Load Game</button>
+      <button class="btn btn-ghost btn-sm" id="btn-reset" title="Discard changes">↺ Reset</button>
+      <button class="btn btn-ghost btn-sm" id="btn-preset" title="Save/load presets">🎚️ Presets</button>
+      <button class="btn btn-gold" id="btn-export" disabled>💾 Export Patched Game</button>
+    </div>
+  </header>
+
+  <!-- ── SIDEBAR ──────────────────────────── -->
+  <aside class="sidebar">
+    <div class="nav-group-title">Progression</div>
+    <div class="nav-item active" data-page="overview"><span class="nav-icon">📊</span>Overview &amp; Sim</div>
+    <div class="nav-item" data-page="stages"><span class="nav-icon">🥚</span>Lifecycle Stages<span class="nav-badge" id="badge-stages">6</span></div>
+    <div class="nav-item" data-page="gates"><span class="nav-icon">🚪</span>Bubble Gates</div>
+    <div class="nav-item" data-page="milestones"><span class="nav-icon">🏁</span>Milestones</div>
+
+    <div class="nav-group-title">Economy</div>
+    <div class="nav-item" data-page="upgrades"><span class="nav-icon">🛒</span>Upgrades<span class="nav-badge" id="badge-upgrades">28</span></div>
+    <div class="nav-item" data-page="helpers"><span class="nav-icon">🐌</span>Helpers<span class="nav-badge" id="badge-helpers">6</span></div>
+    <div class="nav-item" data-page="achievements"><span class="nav-icon">🏆</span>Achievements<span class="nav-badge" id="badge-ach">18</span></div>
+
+    <div class="nav-group-title">Player Feel</div>
+    <div class="nav-item" data-page="needs"><span class="nav-icon">💧</span>Needs &amp; Drains</div>
+    <div class="nav-item" data-page="activities"><span class="nav-icon">🎮</span>Activities</div>
+    <div class="nav-item" data-page="clicking"><span class="nav-icon">👆</span>Clicking &amp; Combo</div>
+    <div class="nav-item" data-page="mood"><span class="nav-icon">😊</span>Mood Curve</div>
+
+    <div class="nav-group-title">Meta Systems</div>
+    <div class="nav-item" data-page="drift"><span class="nav-icon">🌌</span>Drift &amp; Prestige</div>
+    <div class="nav-item" data-page="offline"><span class="nav-icon">💤</span>Offline Earnings</div>
+    <div class="nav-item" data-page="raw"><span class="nav-icon">📝</span>Raw JSON</div>
+  </aside>
+
+  <!-- ── MAIN ─────────────────────────────── -->
+  <main class="main" id="main"></main>
+
+</div>
+
+<!-- Empty state shown when nothing loaded -->
+<div id="empty-state" class="empty-state" style="display:none;">
+  <div class="empty-mark">🧪</div>
+  <div>
+    <h2>Load AxoLottaFun_Game.html to begin</h2>
+    <p>This tool reads every balance constant directly out of the game file, lets you edit it in a structured UI, then writes a patched copy back. Your original file is never modified.</p>
+  </div>
+  <label class="file-drop" id="drop-zone">
+    <input type="file" accept=".html" id="file-input">
+    <strong>Click or drop your game HTML here</strong>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-3);margin-top:6px;letter-spacing:0.12em;">.HTML · STAYS LOCAL · NEVER UPLOADED</div>
+  </label>
+</div>
+
+<!-- Float action bar shown when changes pending -->
+<div class="float-action" id="float-action">
+  <div class="float-action-info">
+    <strong id="change-count">0</strong> unsaved change(s) — preview &amp; export to apply them.
+  </div>
+  <button class="btn btn-ghost btn-sm" id="btn-discard">Discard</button>
+  <button class="btn btn-gold" id="btn-preview">Preview Diff</button>
+  <button class="btn btn-primary" id="btn-export-2">Export Patched Game</button>
+</div>
+
+<!-- Export / Diff modal -->
+<div class="modal-back" id="modal-export">
+  <div class="modal">
+    <h3>🧪 Patched Game Ready</h3>
+    <p>The following <strong id="modal-change-count" style="color:var(--gold)">0</strong> change(s) will be written into a new copy of <code style="color:var(--aqua-light)">AxoLottaFun_Game.html</code>. Your original file remains untouched.</p>
+    <div class="diff-list" id="diff-list"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-ghost" id="modal-copy">📋 Copy Diff</button>
+      <button class="btn btn-gold" id="modal-download">⬇ Download Patched HTML</button>
+    </div>
+  </div>
+</div>
+
+<!-- Presets modal -->
+<div class="modal-back" id="modal-preset">
+  <div class="modal">
+    <h3>🎚️ Balance Presets</h3>
+    <p>Save the current balance config as JSON, or paste in a previously saved config to load it.</p>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-2);letter-spacing:0.14em;text-transform:uppercase;flex:1;">Quick Presets</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-sm" data-preset="default">Restore Defaults</button>
+          <button class="btn btn-sm" data-preset="fast">Fast Progression ×2</button>
+          <button class="btn btn-sm" data-preset="slow">Slow / Hardcore</button>
+          <button class="btn btn-sm" data-preset="generous">Generous Idle</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-2);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:6px;">Config JSON</div>
+        <textarea class="textarea" id="preset-json" style="min-height:180px;font-family:'JetBrains Mono',monospace;font-size:11px;" placeholder="Paste a saved config here..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="preset-cancel">Close</button>
+      <button class="btn btn-ghost" id="preset-copy">📋 Copy Current</button>
+      <button class="btn btn-primary" id="preset-apply">Apply Pasted Config</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-area" id="toast-area"></div>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+// AxoLottaFun Balance Manager
+// Single-file tool: parses balance constants from the game HTML,
+// lets the user edit them, writes them back into a patched copy.
+// ═════════════════════════════════════════════════════════════
+
+// ──────────────────────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────────────────────
+
+const State = {
+  rawFile: null,         // original HTML string (immutable until export)
+  filename: null,        // original filename
+  parsed: null,          // parsed model { stages, upgrades, helpers, ... }
+  defaults: null,        // deep clone of parsed at load time (for diffing & reset)
+  currentPage: 'overview',
+  filterCategory: 'all',
+};
+
+// ──────────────────────────────────────────────────────────────
+// UTILITIES
+// ──────────────────────────────────────────────────────────────
+
+function $(sel, root) { return (root || document).querySelector(sel); }
+function $$(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
+
+function clone(x) { return JSON.parse(JSON.stringify(x)); }
+
+function fmtNum(n) {
+  if (n == null || isNaN(n)) return '—';
+  n = Number(n);
+  if (Math.abs(n) < 1000) return Number.isInteger(n) ? n.toString() : n.toFixed(2);
+  if (Math.abs(n) < 1e6) return (n/1e3).toFixed(2) + 'K';
+  if (Math.abs(n) < 1e9) return (n/1e6).toFixed(2) + 'M';
+  if (Math.abs(n) < 1e12) return (n/1e9).toFixed(2) + 'B';
+  if (Math.abs(n) < 1e15) return (n/1e12).toFixed(2) + 'T';
+  return n.toExponential(2);
+}
+
+function fmtTime(seconds) {
+  if (!isFinite(seconds) || seconds < 0) return '—';
+  if (seconds < 60) return Math.round(seconds) + 's';
+  if (seconds < 3600) return (seconds/60).toFixed(1) + ' min';
+  if (seconds < 86400) return (seconds/3600).toFixed(1) + ' hr';
+  return (seconds/86400).toFixed(1) + ' days';
+}
+
+function toast(msg, kind) {
+  const div = document.createElement('div');
+  div.className = 'toast' + (kind ? ' ' + kind : '');
+  div.textContent = msg;
+  $('#toast-area').appendChild(div);
+  setTimeout(() => {
+    div.style.transition = 'all 0.25s ease';
+    div.style.opacity = '0';
+    div.style.transform = 'translateX(30px)';
+    setTimeout(() => div.remove(), 260);
+  }, 3200);
+}
+
+// ──────────────────────────────────────────────────────────────
+// PARSER — read balance values out of the game's HTML
+// ──────────────────────────────────────────────────────────────
+// Strategy: each editable constant has a known textual pattern.
+// We capture both the parsed model AND the original source slice
+// so we can do exact textual replacements on export. Patches are
+// stored as { startIdx, endIdx, originalText, currentText, key }
+// and replayed against State.rawFile to produce the patched HTML.
+
+function parseGame(html) {
+  const model = {
+    stages: [],
+    upgrades: [],
+    helpers: [],
+    achievements: [],
+    bubbleGates: {},
+    drainRates: {},
+    activities: {},
+    clicking: {},
+    mood: {},
+    drift: {},
+    offline: {},
+    milestones: [],
+    initialState: {},
+  };
+
+  // Unescape escaped single-quotes (used in source strings like `It\'s`) back to plain text.
+  const unesc = (s) => String(s).replace(/\\'/g, "'");
+
+  // ─── STAGES ─────────────────────────────────────────────
+  // Match each line of: { id:'EGG', label:'🥚 Egg', minDays:0, bpsBonus:1.0, clickBonus:1.0 }
+  const stageRegex = /\{\s*id:\s*'([A-Z]+)',\s*label:\s*'([^']+)',\s*minDays:\s*([\d.]+),\s*bpsBonus:\s*([\d.]+),\s*clickBonus:\s*([\d.]+)\s*\}/g;
+  let m;
+  while ((m = stageRegex.exec(html)) !== null) {
+    model.stages.push({
+      _start: m.index,
+      _end: m.index + m[0].length,
+      _orig: m[0],
+      id: m[1],
+      label: unesc(m[2]),
+      minDays: parseFloat(m[3]),
+      bpsBonus: parseFloat(m[4]),
+      clickBonus: parseFloat(m[5]),
+    });
+    if (model.stages.length >= 6) break;
+  }
+
+  // ─── UPGRADES ────────────────────────────────────────────
+  const upRegex = /\{\s*id:'([^']+)',\s*cat:'([^']+)',\s*name:'((?:\\'|[^'])*)',\s*icon:'([^']+)',\s*cost:(\d+),\s*desc:'((?:\\'|[^'])*)',\s*effect:\(\)=>\{([^}]*)\},\s*mult:(true|false)\s*\}/g;
+  while ((m = upRegex.exec(html)) !== null) {
+    model.upgrades.push({
+      _start: m.index,
+      _end: m.index + m[0].length,
+      _orig: m[0],
+      id: m[1],
+      cat: m[2],
+      name: unesc(m[3]),
+      icon: m[4],
+      cost: parseInt(m[5], 10),
+      desc: unesc(m[6]),
+      effectBody: m[7],
+      mult: m[8] === 'true',
+    });
+  }
+
+  // ─── HELPERS ─────────────────────────────────────────────
+  const helperRegex = /\{\s*id:'([^']+)',\s*name:'((?:\\'|[^'])*)',\s*icon:'([^']+)',\s*baseBps:([\d.]+),\s*unlockCost:(\d+),\s*upgradeCosts:\[([\d,\s]+)\],\s*upgradeMults:\[([\d.,\s]+)\],\s*desc:'((?:\\'|[^'])*)',\s*x:(\d+)\s*\}/g;
+  while ((m = helperRegex.exec(html)) !== null) {
+    model.helpers.push({
+      _start: m.index,
+      _end: m.index + m[0].length,
+      _orig: m[0],
+      id: m[1],
+      name: unesc(m[2]),
+      icon: m[3],
+      baseBps: parseFloat(m[4]),
+      unlockCost: parseInt(m[5], 10),
+      upgradeCosts: m[6].split(',').map(s => parseInt(s.trim(), 10)),
+      upgradeMults: m[7].split(',').map(s => parseFloat(s.trim())),
+      desc: unesc(m[8]),
+      x: parseInt(m[9], 10),
+    });
+  }
+
+  // ─── ACHIEVEMENTS ────────────────────────────────────────
+  const achRegex = /\{\s*id:'([^']+)',\s*name:'((?:\\'|[^'])*)',\s*desc:'((?:\\'|[^'])*)',\s*check:([^,]+(?:,[^,]+)?)\s*,\s*reward:\{([^}]+)\},\s*tier:(\d+)\s*\}/g;
+  while ((m = achRegex.exec(html)) !== null) {
+    const rewardStr = m[5];
+    const reward = {};
+    rewardStr.split(',').forEach(part => {
+      const [k, v] = part.split(':').map(s => s.trim());
+      if (k && v) reward[k] = parseInt(v, 10);
+    });
+    model.achievements.push({
+      _start: m.index,
+      _end: m.index + m[0].length,
+      _orig: m[0],
+      _rewardStart: m.index + m[0].indexOf('reward:{') + 'reward:{'.length,
+      _rewardEnd: m.index + m[0].lastIndexOf('},'),
+      id: m[1],
+      name: unesc(m[2]),
+      desc: unesc(m[3]),
+      checkBody: m[4],
+      reward,
+      tier: parseInt(m[6], 10),
+    });
+  }
+
+  // ─── BUBBLE GATES ────────────────────────────────────────
+  const bubGate = html.match(/const bubbleGates = \{\s*HATCHLING:\s*([\d.e+]+),\s*JUVENILE:\s*([\d.e+]+),\s*ADULT:\s*([\d.e+]+),\s*ELDER:\s*([\d.e+]+),\s*LEGEND:\s*([\d.e+]+),?\s*\};/);
+  if (bubGate) {
+    model.bubbleGates = {
+      _orig: bubGate[0],
+      _start: bubGate.index,
+      _end: bubGate.index + bubGate[0].length,
+      HATCHLING: Number(bubGate[1]),
+      JUVENILE: Number(bubGate[2]),
+      ADULT: Number(bubGate[3]),
+      ELDER: Number(bubGate[4]),
+      LEGEND: Number(bubGate[5]),
+    };
+  }
+
+  // ─── DRAIN RATES ─────────────────────────────────────────
+  const drainMatch = html.match(/drainRates:\{\s*hunger:(\d+),\s*happiness:(\d+),\s*cleanliness:(\d+),\s*enrichment:(\d+)\s*\}/);
+  if (drainMatch) {
+    model.drainRates = {
+      _orig: drainMatch[0],
+      _start: drainMatch.index,
+      _end: drainMatch.index + drainMatch[0].length,
+      hunger: parseInt(drainMatch[1], 10),
+      happiness: parseInt(drainMatch[2], 10),
+      cleanliness: parseInt(drainMatch[3], 10),
+      enrichment: parseInt(drainMatch[4], 10),
+    };
+  }
+
+  // ─── INITIAL FEED BONUS ──────────────────────────────────
+  const fb = html.match(/feedMult:1,\s*feedBonus:(\d+),/);
+  if (fb) {
+    model.initialState.feedBonus = {
+      _orig: fb[0],
+      _start: fb.index,
+      _end: fb.index + fb[0].length,
+      _pattern: 'feedMult:1, feedBonus:',
+      value: parseInt(fb[1], 10),
+    };
+  }
+
+  // ─── ACTIVITIES ──────────────────────────────────────────
+  // doFeed: hunger restore = G.feedBonus, happiness bonus = 5, cooldown ms
+  // doClean: cleanliness +60, enrichment + (5+actEnrichBonus), cooldown
+  // doPlay: happiness +25, enrichment +20, bubble burst seconds, cooldown
+  const feedSet = html.match(/(function doFeed\(\)[\s\S]+?G\.needs\.happiness = Math\.min\(100, G\.needs\.happiness \+ )(\d+)(\);[\s\S]+?setCooldown\('feed', )(\d+)(, btn\);)/);
+  if (feedSet) {
+    model.activities.feedHappinessBonus = {
+      _capStart: feedSet.index + feedSet[1].length,
+      _capEnd: feedSet.index + feedSet[1].length + feedSet[2].length,
+      value: parseInt(feedSet[2], 10),
+    };
+    model.activities.feedCooldown = {
+      _capStart: feedSet.index + feedSet[1].length + feedSet[2].length + feedSet[3].length,
+      _capEnd: feedSet.index + feedSet[1].length + feedSet[2].length + feedSet[3].length + feedSet[4].length,
+      value: parseInt(feedSet[4], 10),
+    };
+  }
+
+  const cleanSet = html.match(/(G\.needs\.cleanliness = Math\.min\(100, G\.needs\.cleanliness \+ )(\d+)( \* G\.activityBonus\);\s*G\.needs\.enrichment\s+= Math\.min\(100, G\.needs\.enrichment\s+\+ \()(\d+)( \+ G\.actEnrichBonus\)\);[\s\S]+?setCooldown\('clean', )(\d+)(\, btn\);)/);
+  if (cleanSet) {
+    const idx0 = cleanSet.index + cleanSet[1].length;
+    model.activities.cleanCleanliness = {
+      _capStart: idx0,
+      _capEnd: idx0 + cleanSet[2].length,
+      value: parseInt(cleanSet[2], 10),
+    };
+    const idx1 = idx0 + cleanSet[2].length + cleanSet[3].length;
+    model.activities.cleanEnrichmentBase = {
+      _capStart: idx1,
+      _capEnd: idx1 + cleanSet[4].length,
+      value: parseInt(cleanSet[4], 10),
+    };
+    const idx2 = idx1 + cleanSet[4].length + cleanSet[5].length;
+    model.activities.cleanCooldown = {
+      _capStart: idx2,
+      _capEnd: idx2 + cleanSet[6].length,
+      value: parseInt(cleanSet[6], 10),
+    };
+  }
+
+  const playSet = html.match(/(G\.needs\.happiness\s+= Math\.min\(100, G\.needs\.happiness\s+\+ )(\d+)( \* G\.activityBonus\);\s*G\.needs\.enrichment = Math\.min\(100, G\.needs\.enrichment \+ \()(\d+)( \+ G\.actEnrichBonus\)\);\s*\/\/ Bubble burst\s*const earned = computeBps\(\) \* )(\d+)(;[\s\S]+?setCooldown\('play', )(\d+)(\, btn\);)/);
+  if (playSet) {
+    let idx = playSet.index + playSet[1].length;
+    model.activities.playHappiness = { _capStart: idx, _capEnd: idx + playSet[2].length, value: parseInt(playSet[2], 10) };
+    idx += playSet[2].length + playSet[3].length;
+    model.activities.playEnrichmentBase = { _capStart: idx, _capEnd: idx + playSet[4].length, value: parseInt(playSet[4], 10) };
+    idx += playSet[4].length + playSet[5].length;
+    model.activities.playBubbleSeconds = { _capStart: idx, _capEnd: idx + playSet[6].length, value: parseInt(playSet[6], 10) };
+    idx += playSet[6].length + playSet[7].length;
+    model.activities.playCooldown = { _capStart: idx, _capEnd: idx + playSet[8].length, value: parseInt(playSet[8], 10) };
+  }
+
+  // ─── CLICKING / COMBO / CRIT ─────────────────────────────
+  const comboMatch = html.match(/(if \(now - G\.lastClickTime < )(\d+)(\) \{\s*G\.clickCombo\+\+;)/);
+  if (comboMatch) {
+    model.clicking.comboWindowMs = {
+      _capStart: comboMatch.index + comboMatch[1].length,
+      _capEnd: comboMatch.index + comboMatch[1].length + comboMatch[2].length,
+      value: parseInt(comboMatch[2], 10),
+    };
+  }
+  const comboHitMatch = html.match(/(if \(G\.clickCombo >= )(\d+)(\) comboMult = )(\d+)(;)/);
+  if (comboHitMatch) {
+    let idx = comboHitMatch.index + comboHitMatch[1].length;
+    model.clicking.comboThreshold = { _capStart: idx, _capEnd: idx + comboHitMatch[2].length, value: parseInt(comboHitMatch[2], 10) };
+    idx += comboHitMatch[2].length + comboHitMatch[3].length;
+    model.clicking.comboMult = { _capStart: idx, _capEnd: idx + comboHitMatch[4].length, value: parseInt(comboHitMatch[4], 10) };
+  }
+  const critMatch = html.match(/(const critThreshold = G\.personality === 'BUBBLY' \? )(\d+)( : )(\d+)(;)/);
+  if (critMatch) {
+    let idx = critMatch.index + critMatch[1].length;
+    model.clicking.critBubbly = { _capStart: idx, _capEnd: idx + critMatch[2].length, value: parseInt(critMatch[2], 10) };
+    idx += critMatch[2].length + critMatch[3].length;
+    model.clicking.critNormal = { _capStart: idx, _capEnd: idx + critMatch[4].length, value: parseInt(critMatch[4], 10) };
+  }
+  const critMultMatch = html.match(/(G\.critClickCount = 0;\s*val \*= )(\d+)(;)/);
+  if (critMultMatch) {
+    let idx = critMultMatch.index + critMultMatch[1].length;
+    model.clicking.critMult = { _capStart: idx, _capEnd: idx + critMultMatch[2].length, value: parseInt(critMultMatch[2], 10) };
+  }
+  const gillMatch = html.match(/(if \(dist < )(\d+)( && !isCrit\) \{\s*val \*= )(\d+)(;)/);
+  if (gillMatch) {
+    let idx = gillMatch.index + gillMatch[1].length;
+    model.clicking.gillRadius = { _capStart: idx, _capEnd: idx + gillMatch[2].length, value: parseInt(gillMatch[2], 10) };
+    idx += gillMatch[2].length + gillMatch[3].length;
+    model.clicking.gillMult = { _capStart: idx, _capEnd: idx + gillMatch[4].length, value: parseInt(gillMatch[4], 10) };
+  }
+
+  // ─── MOOD ────────────────────────────────────────────────
+  const moodWeights = html.match(/(return \(n\.hunger\*)([\d.]+)( \+ n\.happiness\*)([\d.]+)( \+ n\.cleanliness\*)([\d.]+)( \+ n\.enrichment\*)([\d.]+)(\);)/);
+  if (moodWeights) {
+    let idx = moodWeights.index + moodWeights[1].length;
+    model.mood.weightHunger = { _capStart: idx, _capEnd: idx + moodWeights[2].length, value: parseFloat(moodWeights[2]) };
+    idx += moodWeights[2].length + moodWeights[3].length;
+    model.mood.weightHappiness = { _capStart: idx, _capEnd: idx + moodWeights[4].length, value: parseFloat(moodWeights[4]) };
+    idx += moodWeights[4].length + moodWeights[5].length;
+    model.mood.weightCleanliness = { _capStart: idx, _capEnd: idx + moodWeights[6].length, value: parseFloat(moodWeights[6]) };
+    idx += moodWeights[6].length + moodWeights[7].length;
+    model.mood.weightEnrichment = { _capStart: idx, _capEnd: idx + moodWeights[8].length, value: parseFloat(moodWeights[8]) };
+  }
+  const moodMult = html.match(/(return )([\d.]+)( \+ \(mood \/ 100\) \* )([\d.]+)(;)/);
+  if (moodMult) {
+    let idx = moodMult.index + moodMult[1].length;
+    model.mood.multBase = { _capStart: idx, _capEnd: idx + moodMult[2].length, value: parseFloat(moodMult[2]) };
+    idx += moodMult[2].length + moodMult[3].length;
+    model.mood.multRange = { _capStart: idx, _capEnd: idx + moodMult[4].length, value: parseFloat(moodMult[4]) };
+  }
+
+  // ─── DRIFT ───────────────────────────────────────────────
+  const driftPearl = html.match(/(const pearlEarned = Math\.max\()(\d+)(,\s*Math\.floor\(Math\.sqrt\(G\.totalBubblesAllTime \/ )([\d.e+]+)(\)\)\);)/);
+  if (driftPearl) {
+    let idx = driftPearl.index + driftPearl[1].length;
+    model.drift.pearlBase = { _capStart: idx, _capEnd: idx + driftPearl[2].length, value: parseInt(driftPearl[2], 10) };
+    idx += driftPearl[2].length + driftPearl[3].length;
+    model.drift.pearlDivisor = { _capStart: idx, _capEnd: idx + driftPearl[4].length, value: Number(driftPearl[4]) };
+  }
+
+  // Drift tree upgrade costs (7 entries)
+  const driftTreeMatch = html.match(/const DRIFT_UPGRADES = \[[\s\S]+?\];/);
+  if (driftTreeMatch) {
+    model.drift._treeStart = driftTreeMatch.index;
+    model.drift._treeEnd = driftTreeMatch.index + driftTreeMatch[0].length;
+    model.drift._treeOrig = driftTreeMatch[0];
+    const dtRegex = /\{\s*id:'([^']+)',\s*name:'((?:\\'|[^'])+)',\s*cost:(\d+),\s*desc:'((?:\\'|[^'])+)',\s*effect:[^}]+\}/g;
+    model.drift.tree = [];
+    let dm;
+    while ((dm = dtRegex.exec(driftTreeMatch[0])) !== null) {
+      model.drift.tree.push({
+        _localStart: dm.index,
+        _localEnd: dm.index + dm[0].length,
+        _orig: dm[0],
+        id: dm[1],
+        name: unesc(dm[2]),
+        cost: parseInt(dm[3], 10),
+        desc: unesc(dm[4]),
+      });
+    }
+  }
+
+  // ─── OFFLINE ─────────────────────────────────────────────
+  const offMatch = html.match(/(const offlineMult = G\.driftTree\?\.theDriftCurrent \? )([\d.]+)( : )([\d.]+)(;)/);
+  if (offMatch) {
+    let idx = offMatch.index + offMatch[1].length;
+    model.offline.driftCurrentMult = { _capStart: idx, _capEnd: idx + offMatch[2].length, value: parseFloat(offMatch[2]) };
+    idx += offMatch[2].length + offMatch[3].length;
+    model.offline.baseMult = { _capStart: idx, _capEnd: idx + offMatch[4].length, value: parseFloat(offMatch[4]) };
+  }
+  const offCap = html.match(/(const cappedHours = Math\.min\(offlineHours, )(\d+)(\);)/);
+  if (offCap) {
+    let idx = offCap.index + offCap[1].length;
+    model.offline.capHours = { _capStart: idx, _capEnd: idx + offCap[2].length, value: parseInt(offCap[2], 10) };
+  }
+  const offMin = html.match(/(if \(offlineHours < )([\d.]+)(\) return 0;)/);
+  if (offMin) {
+    let idx = offMin.index + offMin[1].length;
+    model.offline.minHours = { _capStart: idx, _capEnd: idx + offMin[2].length, value: parseFloat(offMin[2]) };
+  }
+
+  // ─── MILESTONES ──────────────────────────────────────────
+  // Upgrade-count milestones with optional effect
+  const msRegex = /\{\s*at:(\d+),\s*key:'([^']+)',\s*title:'((?:\\'|[^'])+)',\s*desc:'((?:\\'|[^'])+)'(?:,\s*effect:\(\)=>\{[^}]+\})?\s*\}/g;
+  let msMatch;
+  while ((msMatch = msRegex.exec(html)) !== null) {
+    model.milestones.push({
+      _start: msMatch.index,
+      _end: msMatch.index + msMatch[0].length,
+      _orig: msMatch[0],
+      at: parseInt(msMatch[1], 10),
+      key: msMatch[2],
+      title: unesc(msMatch[3]),
+      desc: unesc(msMatch[4]),
+      hasEffect: msMatch[0].includes('effect:'),
+    });
+  }
+
+  return model;
+}
+
+// ──────────────────────────────────────────────────────────────
+// DIFF — collect changes vs defaults
+// ──────────────────────────────────────────────────────────────
+
+function collectDiffs() {
+  const diffs = [];
+  const cur = State.parsed, def = State.defaults;
+
+  // Stages
+  cur.stages.forEach((s, i) => {
+    const d = def.stages[i];
+    ['label', 'minDays', 'bpsBonus', 'clickBonus'].forEach(k => {
+      if (s[k] !== d[k]) diffs.push({ path: `stages[${i}].${k} (${s.id})`, old: d[k], new: s[k] });
+    });
+  });
+
+  // Upgrades
+  cur.upgrades.forEach((u, i) => {
+    const d = def.upgrades[i];
+    if (u.name !== d.name) diffs.push({ path: `upgrades[${u.id}].name`, old: d.name, new: u.name });
+    if (u.cost !== d.cost) diffs.push({ path: `upgrades[${u.id}].cost`, old: d.cost, new: u.cost });
+    if (u.desc !== d.desc) diffs.push({ path: `upgrades[${u.id}].desc`, old: d.desc, new: u.desc });
+  });
+
+  // Helpers
+  cur.helpers.forEach((h, i) => {
+    const d = def.helpers[i];
+    ['name', 'baseBps', 'unlockCost'].forEach(k => {
+      if (h[k] !== d[k]) diffs.push({ path: `helpers[${h.id}].${k}`, old: d[k], new: h[k] });
+    });
+    h.upgradeCosts.forEach((c, j) => { if (c !== d.upgradeCosts[j]) diffs.push({ path: `helpers[${h.id}].upgradeCosts[${j}]`, old: d.upgradeCosts[j], new: c }); });
+    h.upgradeMults.forEach((c, j) => { if (c !== d.upgradeMults[j]) diffs.push({ path: `helpers[${h.id}].upgradeMults[${j}]`, old: d.upgradeMults[j], new: c }); });
+  });
+
+  // Achievements
+  cur.achievements.forEach((a, i) => {
+    const d = def.achievements[i];
+    if (a.name !== d.name) diffs.push({ path: `ach[${a.id}].name`, old: d.name, new: a.name });
+    if (a.desc !== d.desc) diffs.push({ path: `ach[${a.id}].desc`, old: d.desc, new: a.desc });
+    if (a.tier !== d.tier) diffs.push({ path: `ach[${a.id}].tier`, old: d.tier, new: a.tier });
+    ['bubbles', 'scales', 'pearls'].forEach(k => {
+      const ov = d.reward[k] || 0, nv = a.reward[k] || 0;
+      if (ov !== nv) diffs.push({ path: `ach[${a.id}].reward.${k}`, old: ov, new: nv });
+    });
+  });
+
+  // Bubble gates
+  ['HATCHLING', 'JUVENILE', 'ADULT', 'ELDER', 'LEGEND'].forEach(k => {
+    if (cur.bubbleGates[k] !== def.bubbleGates[k]) diffs.push({ path: `bubbleGates.${k}`, old: def.bubbleGates[k], new: cur.bubbleGates[k] });
+  });
+
+  // Drain rates
+  ['hunger', 'happiness', 'cleanliness', 'enrichment'].forEach(k => {
+    if (cur.drainRates[k] !== def.drainRates[k]) diffs.push({ path: `drainRates.${k}`, old: def.drainRates[k], new: cur.drainRates[k] });
+  });
+
+  // Activities
+  Object.keys(cur.activities).forEach(k => {
+    if (cur.activities[k].value !== def.activities[k].value) diffs.push({ path: `activities.${k}`, old: def.activities[k].value, new: cur.activities[k].value });
+  });
+
+  // Clicking
+  Object.keys(cur.clicking).forEach(k => {
+    if (cur.clicking[k].value !== def.clicking[k].value) diffs.push({ path: `clicking.${k}`, old: def.clicking[k].value, new: cur.clicking[k].value });
+  });
+
+  // Mood
+  Object.keys(cur.mood).forEach(k => {
+    if (cur.mood[k].value !== def.mood[k].value) diffs.push({ path: `mood.${k}`, old: def.mood[k].value, new: cur.mood[k].value });
+  });
+
+  // Drift
+  if (cur.drift.pearlBase && cur.drift.pearlBase.value !== def.drift.pearlBase.value) diffs.push({ path: `drift.pearlBase`, old: def.drift.pearlBase.value, new: cur.drift.pearlBase.value });
+  if (cur.drift.pearlDivisor && cur.drift.pearlDivisor.value !== def.drift.pearlDivisor.value) diffs.push({ path: `drift.pearlDivisor`, old: def.drift.pearlDivisor.value, new: cur.drift.pearlDivisor.value });
+  (cur.drift.tree || []).forEach((t, i) => {
+    const d = def.drift.tree[i];
+    if (t.cost !== d.cost) diffs.push({ path: `drift.tree[${t.id}].cost`, old: d.cost, new: t.cost });
+    if (t.name !== d.name) diffs.push({ path: `drift.tree[${t.id}].name`, old: d.name, new: t.name });
+  });
+
+  // Offline
+  Object.keys(cur.offline).forEach(k => {
+    if (cur.offline[k].value !== def.offline[k].value) diffs.push({ path: `offline.${k}`, old: def.offline[k].value, new: cur.offline[k].value });
+  });
+
+  // Initial state
+  if (cur.initialState.feedBonus && cur.initialState.feedBonus.value !== def.initialState.feedBonus.value) {
+    diffs.push({ path: `initialState.feedBonus`, old: def.initialState.feedBonus.value, new: cur.initialState.feedBonus.value });
+  }
+
+  // Milestones
+  cur.milestones.forEach((m, i) => {
+    const d = def.milestones[i];
+    if (m.at !== d.at) diffs.push({ path: `milestone[${m.key}].at`, old: d.at, new: m.at });
+    if (m.title !== d.title) diffs.push({ path: `milestone[${m.key}].title`, old: d.title, new: m.title });
+    if (m.desc !== d.desc) diffs.push({ path: `milestone[${m.key}].desc`, old: d.desc, new: m.desc });
+  });
+
+  return diffs;
+}
+
+// ──────────────────────────────────────────────────────────────
+// COMPILE — rewrite raw HTML with current values
+// ──────────────────────────────────────────────────────────────
+
+function compilePatchedHTML() {
+  const m = State.parsed;
+  const patches = [];  // { start, end, replacement }
+
+  const escSingle = (s) => String(s).replace(/'/g, "\\'");
+
+  // STAGES — rebuild each block
+  m.stages.forEach(s => {
+    const rebuilt = `{ id:'${s.id}',      label:'${escSingle(s.label)}',       minDays:${s.minDays},  bpsBonus:${s.bpsBonus},  clickBonus:${s.clickBonus}  }`;
+    // We use a tolerant rebuilt form; spacing inside doesn't matter at runtime.
+    // But to keep the file pleasant, we rebuild with simple spacing.
+    const compact = `{ id:'${s.id}', label:'${escSingle(s.label)}', minDays:${s.minDays}, bpsBonus:${s.bpsBonus}, clickBonus:${s.clickBonus} }`;
+    patches.push({ start: s._start, end: s._end, replacement: compact });
+  });
+
+  // UPGRADES
+  m.upgrades.forEach(u => {
+    const rebuilt = `{ id:'${u.id}', cat:'${u.cat}', name:'${escSingle(u.name)}', icon:'${u.icon}', cost:${u.cost}, desc:'${escSingle(u.desc)}', effect:()=>{${u.effectBody}}, mult:${u.mult} }`;
+    patches.push({ start: u._start, end: u._end, replacement: rebuilt });
+  });
+
+  // HELPERS
+  m.helpers.forEach(h => {
+    const rebuilt = `{ id:'${h.id}', name:'${escSingle(h.name)}', icon:'${h.icon}', baseBps:${h.baseBps}, unlockCost:${h.unlockCost}, upgradeCosts:[${h.upgradeCosts.join(',')}], upgradeMults:[${h.upgradeMults.join(',')}], desc:'${escSingle(h.desc)}', x:${h.x} }`;
+    patches.push({ start: h._start, end: h._end, replacement: rebuilt });
+  });
+
+  // ACHIEVEMENTS — preserve check body, replace name/desc/reward/tier
+  m.achievements.forEach(a => {
+    const def = State.defaults.achievements.find(x => x.id === a.id);
+    // Rebuild reward block
+    const rewardParts = [];
+    if (a.reward.bubbles) rewardParts.push(`bubbles:${a.reward.bubbles}`);
+    if (a.reward.scales) rewardParts.push(`scales:${a.reward.scales}`);
+    if (a.reward.pearls) rewardParts.push(`pearls:${a.reward.pearls}`);
+    const rewardStr = rewardParts.join(',');
+    const rebuilt = `{ id:'${a.id}', name:'${escSingle(a.name)}', desc:'${escSingle(a.desc)}', check:${a.checkBody.trim()}, reward:{${rewardStr}}, tier:${a.tier} }`;
+    patches.push({ start: a._start, end: a._end, replacement: rebuilt });
+  });
+
+  // BUBBLE GATES
+  if (m.bubbleGates._orig != null) {
+    const rebuilt = `const bubbleGates = {\n    HATCHLING: ${m.bubbleGates.HATCHLING},\n    JUVENILE:  ${m.bubbleGates.JUVENILE},\n    ADULT:     ${m.bubbleGates.ADULT},\n    ELDER:     ${m.bubbleGates.ELDER},\n    LEGEND:    ${m.bubbleGates.LEGEND},\n  };`;
+    patches.push({ start: m.bubbleGates._start, end: m.bubbleGates._end, replacement: rebuilt });
+  }
+
+  // DRAIN RATES
+  if (m.drainRates._orig != null) {
+    const rebuilt = `drainRates:{ hunger:${m.drainRates.hunger}, happiness:${m.drainRates.happiness}, cleanliness:${m.drainRates.cleanliness}, enrichment:${m.drainRates.enrichment} }`;
+    patches.push({ start: m.drainRates._start, end: m.drainRates._end, replacement: rebuilt });
+  }
+
+  // INITIAL STATE — feedBonus
+  if (m.initialState.feedBonus) {
+    patches.push({
+      start: m.initialState.feedBonus._capStart != null ? m.initialState.feedBonus._capStart : m.initialState.feedBonus._start,
+      end: m.initialState.feedBonus._capEnd != null ? m.initialState.feedBonus._capEnd : m.initialState.feedBonus._end,
+      replacement: String(m.initialState.feedBonus.value),
+    });
+    // Actually we use full replace
+    if (m.initialState.feedBonus._capStart == null) {
+      patches.pop();
+      patches.push({
+        start: m.initialState.feedBonus._start,
+        end: m.initialState.feedBonus._end,
+        replacement: `feedMult:1, feedBonus:${m.initialState.feedBonus.value},`,
+      });
+    } else {
+      // Adjust: actually our parse stored full _orig; rewrite full block
+      patches.pop();
+      patches.push({
+        start: m.initialState.feedBonus._start,
+        end: m.initialState.feedBonus._end,
+        replacement: `feedMult:1, feedBonus:${m.initialState.feedBonus.value},`,
+      });
+    }
+  }
+
+  // ACTIVITIES, CLICKING, MOOD, OFFLINE — single-number patches via _capStart/_capEnd
+  const numberFields = [];
+  Object.entries(m.activities).forEach(([k, v]) => numberFields.push({ obj: v, key: k }));
+  Object.entries(m.clicking).forEach(([k, v]) => numberFields.push({ obj: v, key: k }));
+  Object.entries(m.mood).forEach(([k, v]) => numberFields.push({ obj: v, key: k }));
+  Object.entries(m.offline).forEach(([k, v]) => numberFields.push({ obj: v, key: k }));
+  if (m.drift.pearlBase) numberFields.push({ obj: m.drift.pearlBase, key: 'drift.pearlBase' });
+  if (m.drift.pearlDivisor) numberFields.push({ obj: m.drift.pearlDivisor, key: 'drift.pearlDivisor' });
+
+  numberFields.forEach(f => {
+    if (f.obj._capStart != null) {
+      patches.push({
+        start: f.obj._capStart,
+        end: f.obj._capEnd,
+        replacement: String(f.obj.value),
+      });
+    }
+  });
+
+  // DRIFT TREE — rebuild whole block
+  if (m.drift._treeStart != null) {
+    let rebuilt = 'const DRIFT_UPGRADES = [\n';
+    m.drift.tree.forEach((t, i) => {
+      const def = State.defaults.drift.tree[i];
+      // Preserve the effect body from _orig
+      const effectMatch = def._orig.match(/effect:(\(\)=>\{[^}]+\})/);
+      const eff = effectMatch ? effectMatch[1] : '()=>{}';
+      rebuilt += `    { id:'${t.id}', name:'${escSingle(t.name)}', cost:${t.cost}, desc:'${escSingle(t.desc)}', effect:${eff} },\n`;
+    });
+    rebuilt += '  ];';
+    patches.push({ start: m.drift._treeStart, end: m.drift._treeEnd, replacement: rebuilt });
+  }
+
+  // MILESTONES
+  m.milestones.forEach((ms, i) => {
+    const def = State.defaults.milestones[i];
+    let rebuilt;
+    if (def.hasEffect) {
+      const effectMatch = def._orig.match(/effect:(\(\)=>\{[^}]+\})/);
+      const eff = effectMatch ? effectMatch[1] : '()=>{}';
+      rebuilt = `{ at:${ms.at},  key:'${ms.key}',  title:'${escSingle(ms.title)}',  desc:'${escSingle(ms.desc)}', effect:${eff} }`;
+    } else {
+      rebuilt = `{ at:${ms.at},  key:'${ms.key}',   title:'${escSingle(ms.title)}',  desc:'${escSingle(ms.desc)}' }`;
+    }
+    patches.push({ start: ms._start, end: ms._end, replacement: rebuilt });
+  });
+
+  // Apply patches descending by start to preserve indices
+  patches.sort((a, b) => b.start - a.start);
+  let out = State.rawFile;
+  for (const p of patches) {
+    out = out.slice(0, p.start) + p.replacement + out.slice(p.end);
+  }
+  return out;
+}
+
+
+// ──────────────────────────────────────────────────────────────
+// SIMULATION — compute time-to-stage, total costs, mood multipliers
+// ──────────────────────────────────────────────────────────────
+
+function simulateProgression() {
+  const m = State.parsed;
+  // Estimate accumulated bubble generation rate at each stage threshold.
+  // Heuristic: at each gate, assume helpers whose unlockCost ≤ gate/4 are owned,
+  // and ones whose first-tier upgrade ≤ gate/10 are at level 1.
+  const helpers = m.helpers;
+  function reachableBpsAt(bubbleGate) {
+    let bps = 0;
+    helpers.forEach(h => {
+      if (h.unlockCost <= bubbleGate / 4) {
+        let rate = h.baseBps;
+        if (h.upgradeCosts[0] && h.upgradeCosts[0] <= bubbleGate / 10) rate *= h.upgradeMults[0];
+        bps += rate;
+      }
+    });
+    return Math.max(0.1, bps);
+  }
+
+  const gates = m.bubbleGates;
+  const stages = m.stages;
+  const rows = [];
+
+  stages.forEach((s, i) => {
+    let timeToReach = 0;
+    let gate = 0;
+    if (i > 0) {
+      gate = gates[s.id] || 0;
+      const bps = reachableBpsAt(gate) * s.bpsBonus;
+      timeToReach = bps > 0 ? gate / bps : 0;
+    }
+    rows.push({
+      stage: s.label,
+      gate,
+      stageBps: s.bpsBonus,
+      timeToReach,
+    });
+  });
+
+  return rows;
+}
+
+function totalUpgradeCost() {
+  return State.parsed.upgrades.reduce((s, u) => s + u.cost, 0);
+}
+function totalHelperCost() {
+  return State.parsed.helpers.reduce((s, h) =>
+    s + h.unlockCost + h.upgradeCosts.reduce((a, b) => a + b, 0), 0);
+}
+
+// ──────────────────────────────────────────────────────────────
+// HTML ESCAPERS
+// ──────────────────────────────────────────────────────────────
+
+function escAttr(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ──────────────────────────────────────────────────────────────
+// PAGE BUILDERS
+// ──────────────────────────────────────────────────────────────
+
+const Pages = {};
+
+Pages.overview = () => {
+  const m = State.parsed;
+  const prog = simulateProgression();
+  const ms = totalUpgradeCost();
+  const mh = totalHelperCost();
+  const diffs = collectDiffs();
+
+  const w = m.mood;
+  const moodAt = (h, hp, c, e) =>
+    w.weightHunger.value * h + w.weightHappiness.value * hp + w.weightCleanliness.value * c + w.weightEnrichment.value * e;
+  const fullMood = moodAt(100, 100, 100, 100);
+  const midMood = moodAt(50, 50, 50, 50);
+  const fullMult = w.multBase.value + (fullMood / 100) * w.multRange.value;
+  const midMult = w.multBase.value + (midMood / 100) * w.multRange.value;
+
+  const maxTime = Math.max(...prog.map(r => r.timeToReach || 0), 1);
+
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Overview &amp; Simulation</h1>
+      <span class="page-tag">${diffs.length} pending change${diffs.length === 1 ? '' : 's'}</span>
+      <div class="page-desc">Live read-out of the current balance configuration. Numbers update instantly as you change values elsewhere.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Headline Numbers</div>
+        <div class="section-sub">DERIVED</div>
+      </div>
+      <div class="sim-grid">
+        <div class="sim-stat">
+          <div class="sim-stat-label">Total Upgrade Cost</div>
+          <div class="sim-stat-value gold">${fmtNum(ms)}</div>
+          <div class="sim-stat-sub">Sum of all ${m.upgrades.length} upgrades</div>
+        </div>
+        <div class="sim-stat">
+          <div class="sim-stat-label">Total Helper Cost</div>
+          <div class="sim-stat-value pink">${fmtNum(mh)}</div>
+          <div class="sim-stat-sub">Unlock + all upgrades, ${m.helpers.length} helpers</div>
+        </div>
+        <div class="sim-stat">
+          <div class="sim-stat-label">Final B/s Mood Mult</div>
+          <div class="sim-stat-value leaf">×${fullMult.toFixed(2)}</div>
+          <div class="sim-stat-sub">@ 100% mood · base ${w.multBase.value}, range ${w.multRange.value}</div>
+        </div>
+        <div class="sim-stat">
+          <div class="sim-stat-label">Mid-Mood Mult</div>
+          <div class="sim-stat-value">×${midMult.toFixed(2)}</div>
+          <div class="sim-stat-sub">@ 50% on every need</div>
+        </div>
+        <div class="sim-stat">
+          <div class="sim-stat-label">Drift Pearls @ 1T bubbles</div>
+          <div class="sim-stat-value gold">${Math.max(m.drift.pearlBase?.value || 5, Math.floor(Math.sqrt(1e12 / (m.drift.pearlDivisor?.value || 1e10))))}</div>
+          <div class="sim-stat-sub">First Legend run</div>
+        </div>
+        <div class="sim-stat">
+          <div class="sim-stat-label">Offline Cap</div>
+          <div class="sim-stat-value">${m.offline.capHours?.value || 12}h</div>
+          <div class="sim-stat-sub">×${m.offline.baseMult?.value || 0.5} base, ×${m.offline.driftCurrentMult?.value || 0.9} w/ Drift Current</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Lifecycle Progression Curve</div>
+        <div class="section-sub">EST. PLAY TIME</div>
+      </div>
+      <div class="section-note aqua">Time-to-reach assumes the player owns helpers whose unlockCost ≤ gate/4. These are rough idle-game projections — real play is faster with active clicking and slower with offline gaps.</div>
+      ${prog.slice(1).map(r => `
+        <div class="prog-bar">
+          <div class="prog-name">${r.stage}</div>
+          <div class="prog-track">
+            <div class="prog-fill" style="width: ${Math.min(100, (r.timeToReach / maxTime) * 100)}%"></div>
+            <div class="prog-label">${fmtNum(r.gate)} bubbles · ~${fmtTime(r.timeToReach)}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Content Inventory</div>
+        <div class="section-sub">COMPOSITION</div>
+      </div>
+      <div class="sim-grid">
+        <div class="sim-stat"><div class="sim-stat-label">Lifecycle Stages</div><div class="sim-stat-value">${m.stages.length}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">Upgrades</div><div class="sim-stat-value">${m.upgrades.length}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">Helpers</div><div class="sim-stat-value">${m.helpers.length}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">Achievements</div><div class="sim-stat-value">${m.achievements.length}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">Drift Tree Nodes</div><div class="sim-stat-value">${(m.drift.tree || []).length}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">Milestones</div><div class="sim-stat-value">${m.milestones.length}</div></div>
+      </div>
+    </div>
+  `;
+};
+
+Pages.stages = () => {
+  const m = State.parsed;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Lifecycle Stages</h1>
+      <span class="page-tag">${m.stages.length} stages</span>
+      <div class="page-desc">Each stage applies <code>bpsBonus</code> and <code>clickBonus</code> multipliers. <code>minDays</code> is a display anchor; the actual unlock trigger is the bubble gate (see Bubble Gates).</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Stage Definitions</div>
+        <div class="section-sub">STAGES[]</div>
+      </div>
+      <div class="row-list">
+        ${m.stages.map((s, i) => `
+          <div class="row-item stages-row">
+            <div class="row-icon">${s.label.split(' ')[0]}</div>
+            <div>
+              <div class="row-name">${s.label.split(' ').slice(1).join(' ')}</div>
+              <div class="row-cat">${s.id}</div>
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Min Days <small>(display)</small></div>
+              <input class="mini-input" type="number" step="1" min="0" value="${s.minDays}" data-stage-field="minDays" data-stage-idx="${i}">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">B/s Bonus ×</div>
+              <input class="mini-input" type="number" step="0.1" min="0" value="${s.bpsBonus}" data-stage-field="bpsBonus" data-stage-idx="${i}">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Click Bonus ×</div>
+              <input class="mini-input" type="number" step="0.1" min="0" value="${s.clickBonus}" data-stage-field="clickBonus" data-stage-idx="${i}">
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.gates = () => {
+  const m = State.parsed;
+  const stagesAfterEgg = m.stages.slice(1);
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Bubble Gates</h1>
+      <span class="page-tag">5 gates</span>
+      <div class="page-desc">Total all-time bubbles required to unlock each stage. This is the real progression knob — tuning these directly controls how long a run takes.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Stage Unlock Thresholds</div>
+        <div class="section-sub">bubbleGates</div>
+      </div>
+      <div class="section-note">Tip: gates are exponential by design (1K → 50K → 500K → 10M → 500M ≈ ×10–×50 each). Smaller multipliers make the game faster; larger make it more idle/long-tail.</div>
+      <div class="field-grid">
+        ${stagesAfterEgg.map(s => `
+          <div class="field">
+            <div class="field-label">${s.label}</div>
+            <input class="input" type="number" step="100" min="0" value="${m.bubbleGates[s.id]}" data-gate="${s.id}">
+            <div class="field-hint">= ${fmtNum(m.bubbleGates[s.id])} total all-time bubbles</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Ratio Analysis</div>
+        <div class="section-sub">GAP BETWEEN GATES</div>
+      </div>
+      <div class="sim-grid">
+        ${stagesAfterEgg.map((s, i) => {
+          if (i === 0) return `<div class="sim-stat"><div class="sim-stat-label">${s.label}</div><div class="sim-stat-value">${fmtNum(m.bubbleGates[s.id])}</div><div class="sim-stat-sub">First gate</div></div>`;
+          const prev = stagesAfterEgg[i - 1];
+          const ratio = m.bubbleGates[s.id] / m.bubbleGates[prev.id];
+          return `<div class="sim-stat">
+            <div class="sim-stat-label">${prev.label} → ${s.label}</div>
+            <div class="sim-stat-value">×${ratio.toFixed(1)}</div>
+            <div class="sim-stat-sub">${fmtNum(m.bubbleGates[s.id] - m.bubbleGates[prev.id])} bubble gap</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.upgrades = () => {
+  const m = State.parsed;
+  const cats = ['feeding', 'habitat', 'enrichment', 'axolotl'];
+  const filter = State.filterCategory;
+  const filteredUpgrades = filter === 'all' ? m.upgrades : m.upgrades.filter(u => u.cat === filter);
+  const catCounts = {};
+  cats.forEach(c => { catCounts[c] = m.upgrades.filter(u => u.cat === c).length; });
+
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Upgrades</h1>
+      <span class="page-tag">${m.upgrades.length} items</span>
+      <div class="page-desc">Costs, names, and descriptions are editable. Effect bodies (the actual game logic) are preserved verbatim — they're too risky to change without breaking the game.</div>
+    </div>
+
+    <div class="section">
+      <div class="chip-row">
+        <div class="chip ${filter === 'all' ? 'active' : ''}" data-cat="all">All<span class="chip-count">${m.upgrades.length}</span></div>
+        ${cats.map(c => `<div class="chip ${filter === c ? 'active' : ''}" data-cat="${c}">${c.charAt(0).toUpperCase() + c.slice(1)}<span class="chip-count">${catCounts[c]}</span></div>`).join('')}
+      </div>
+
+      <div class="row-list">
+        ${filteredUpgrades.map(u => {
+          const realIdx = m.upgrades.indexOf(u);
+          const defCost = State.defaults.upgrades[realIdx].cost;
+          const diffPct = u.cost === defCost ? 0 : ((u.cost / defCost - 1) * 100);
+          return `
+          <div class="row-item upgrades-row">
+            <div class="row-icon">${u.icon}</div>
+            <div>
+              <input class="mini-input" type="text" value="${escAttr(u.name)}" data-up-field="name" data-up-idx="${realIdx}" style="font-family:'Fredoka One',cursive;font-size:13px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <div class="row-cat">${u.cat} · ${u.mult ? '×MULT' : 'flat'}</div>
+              <input class="mini-input" type="text" value="${escAttr(u.desc)}" data-up-field="desc" data-up-idx="${realIdx}" style="font-family:'Inter',sans-serif;font-size:11px;color:var(--text-2);margin-top:4px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Cost (B)</div>
+              <input class="mini-input" type="number" step="1" min="0" value="${u.cost}" data-up-field="cost" data-up-idx="${realIdx}">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">vs default</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${diffPct === 0 ? 'var(--text-3)' : 'var(--gold)'};padding:6px 0;">
+                ${diffPct === 0 ? '—' : (diffPct > 0 ? '↑ ' : '↓ ') + Math.abs(diffPct).toFixed(0) + '%'}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.helpers = () => {
+  const m = State.parsed;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Helpers</h1>
+      <span class="page-tag">${m.helpers.length} creatures</span>
+      <div class="page-desc">Six idle producers, each with an unlock cost and three upgrade tiers. Each upgrade tier multiplies that helper's base B/s.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Helper Roster</div>
+        <div class="section-sub">HELPERS[]</div>
+      </div>
+      <div class="row-list">
+        ${m.helpers.map((h, i) => `
+          <div class="row-item helpers-row">
+            <div class="row-icon">${h.icon}</div>
+            <div>
+              <input class="mini-input" type="text" value="${escAttr(h.name)}" data-h-field="name" data-h-idx="${i}" style="font-family:'Fredoka One',cursive;font-size:13px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <div class="row-cat">${h.id} · pos x=${h.x}%</div>
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Base B/s</div>
+              <input class="mini-input" type="number" step="0.5" min="0" value="${h.baseBps}" data-h-field="baseBps" data-h-idx="${i}">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Unlock Cost</div>
+              <input class="mini-input" type="number" step="1" min="0" value="${h.unlockCost}" data-h-field="unlockCost" data-h-idx="${i}">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Upgrade Tiers (cost / multiplier)</div>
+              <div style="display:flex;gap:6px;">
+                ${h.upgradeCosts.map((c, j) => `
+                  <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+                    <input class="mini-input" type="number" step="1" min="0" value="${c}" data-h-field="upgradeCost" data-h-idx="${i}" data-h-tier="${j}" style="font-size:11px;" title="Tier ${j + 1} cost">
+                    <input class="mini-input" type="number" step="0.1" min="1" value="${h.upgradeMults[j]}" data-h-field="upgradeMult" data-h-idx="${i}" data-h-tier="${j}" style="font-size:11px;color:var(--aqua-light);" title="Tier ${j + 1} multiplier">
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Helper B/s After All Upgrades</div>
+        <div class="section-sub">SIM</div>
+      </div>
+      <div class="sim-grid">
+        ${m.helpers.map(h => {
+          const finalRate = h.upgradeMults.reduce((r, x) => r * x, h.baseBps);
+          return `<div class="sim-stat">
+            <div class="sim-stat-label">${h.icon} ${h.name.split(' ')[0]}</div>
+            <div class="sim-stat-value leaf">${fmtNum(finalRate)} B/s</div>
+            <div class="sim-stat-sub">×${h.upgradeMults.reduce((r, x) => r * x, 1).toFixed(0)} from upgrades</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.achievements = () => {
+  const m = State.parsed;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Achievements</h1>
+      <span class="page-tag">${m.achievements.length} entries</span>
+      <div class="page-desc">Names, descriptions, rewards, and tier are editable. The trigger condition (<code>check</code>) is preserved as-is — those are functions tied to game state.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Achievement List</div>
+        <div class="section-sub">ACHIEVEMENTS[]</div>
+      </div>
+      <div class="row-list">
+        ${m.achievements.map((a, i) => `
+          <div class="row-item ach-row">
+            <div>
+              <input class="mini-input" type="text" value="${escAttr(a.name)}" data-a-field="name" data-a-idx="${i}" style="font-family:'Fredoka One',cursive;font-size:13px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <input class="mini-input" type="text" value="${escAttr(a.desc)}" data-a-field="desc" data-a-idx="${i}" style="font-family:'Inter',sans-serif;font-size:11px;color:var(--text-2);margin-top:4px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <div class="row-cat">${a.id}</div>
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Rewards</div>
+              <div style="display:flex;gap:5px;">
+                <input class="mini-input" type="number" step="1" min="0" value="${a.reward.bubbles || 0}" data-a-field="reward.bubbles" data-a-idx="${i}" style="font-size:11px;" placeholder="B" title="Bubbles">
+                <input class="mini-input" type="number" step="1" min="0" value="${a.reward.scales || 0}" data-a-field="reward.scales" data-a-idx="${i}" style="font-size:11px;color:var(--pink);" placeholder="S" title="Scales">
+                <input class="mini-input" type="number" step="1" min="0" value="${a.reward.pearls || 0}" data-a-field="reward.pearls" data-a-idx="${i}" style="font-size:11px;color:var(--pearl);" placeholder="P" title="Pearls">
+              </div>
+              <div style="font-size:10px;color:var(--text-3);font-family:'JetBrains Mono',monospace;margin-top:2px;letter-spacing:0.12em;">B · S · P</div>
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Tier</div>
+              <input class="mini-input" type="number" step="1" min="0" max="5" value="${a.tier}" data-a-field="tier" data-a-idx="${i}">
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Check</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-3);padding:6px 0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escAttr(a.checkBody)}">${escHtml(a.checkBody.trim()).slice(0, 24)}…</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.needs = () => {
+  const m = State.parsed;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Needs &amp; Drain Rates</h1>
+      <span class="page-tag">4 needs</span>
+      <div class="page-desc">How quickly each need drains per real-world hour. Lower values = less maintenance pressure; higher = the player must engage more.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Drain Rates (per hour)</div>
+        <div class="section-sub">drainRates</div>
+      </div>
+      <div class="section-note">Rates also apply during offline time — they multiply by offline hours. A high drain rate punishes long offline sessions; a low rate makes the game more idle-friendly.</div>
+      <div class="field-grid">
+        ${['hunger', 'happiness', 'cleanliness', 'enrichment'].map(k => {
+          const icon = { hunger: '🍤', happiness: '😊', cleanliness: '🧹', enrichment: '🎮' }[k];
+          const label = k.charAt(0).toUpperCase() + k.slice(1);
+          const rate = m.drainRates[k];
+          return `
+            <div class="field">
+              <div class="field-label">${icon} ${label} Drain</div>
+              <input class="input" type="number" step="1" min="0" max="100" value="${rate}" data-drain="${k}">
+              <div class="field-hint">Time to empty (from 100): ${fmtTime(100 / Math.max(rate, 0.1) * 3600)}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Starting Feed Bonus</div>
+        <div class="section-sub">initialState.feedBonus</div>
+      </div>
+      <div class="field-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));">
+        <div class="field">
+          <div class="field-label">Feed Restores (starting value)</div>
+          <input class="input" type="number" step="1" min="0" max="100" value="${m.initialState.feedBonus ? m.initialState.feedBonus.value : 40}" data-initial="feedBonus">
+          <div class="field-hint">Base hunger restored per feed; modified upward by upgrades.</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+Pages.activities = () => {
+  const m = State.parsed;
+  const a = m.activities;
+  const v = (k, d) => a[k]?.value ?? d;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Activities</h1>
+      <span class="page-tag">3 actions</span>
+      <div class="page-desc">Feed, Clean, and Play. Each restores needs and has a cooldown. These are the main on-demand engagement loop.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">🍤 Feed</div>
+        <div class="section-sub">doFeed()</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Bonus Happiness Restore</div>
+          <input class="input" type="number" step="1" min="0" max="100" value="${v('feedHappinessBonus', 5)}" data-act="feedHappinessBonus">
+          <div class="field-hint">Happiness restored on top of hunger restore.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Cooldown (ms)</div>
+          <input class="input" type="number" step="60000" min="0" value="${v('feedCooldown', 7200000)}" data-act="feedCooldown">
+          <div class="field-hint">= ${(v('feedCooldown', 7200000) / 60000).toFixed(1)} minutes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">🧹 Clean</div>
+        <div class="section-sub">doClean()</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Cleanliness Restore</div>
+          <input class="input" type="number" step="1" min="0" max="100" value="${v('cleanCleanliness', 60)}" data-act="cleanCleanliness">
+          <div class="field-hint">Modified by activityBonus.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Bonus Enrichment Restore</div>
+          <input class="input" type="number" step="1" min="0" max="100" value="${v('cleanEnrichmentBase', 5)}" data-act="cleanEnrichmentBase">
+          <div class="field-hint">Plus actEnrichBonus from upgrades.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Cooldown (ms)</div>
+          <input class="input" type="number" step="60000" min="0" value="${v('cleanCooldown', 9000000)}" data-act="cleanCooldown">
+          <div class="field-hint">= ${(v('cleanCooldown', 9000000) / 60000).toFixed(1)} minutes</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">🫧 Play</div>
+        <div class="section-sub">doPlay()</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Happiness Restore</div>
+          <input class="input" type="number" step="1" min="0" max="100" value="${v('playHappiness', 25)}" data-act="playHappiness">
+        </div>
+        <div class="field">
+          <div class="field-label">Bonus Enrichment Restore</div>
+          <input class="input" type="number" step="1" min="0" max="100" value="${v('playEnrichmentBase', 20)}" data-act="playEnrichmentBase">
+        </div>
+        <div class="field">
+          <div class="field-label">Bubble Burst (sec of B/s)</div>
+          <input class="input" type="number" step="1" min="0" value="${v('playBubbleSeconds', 15)}" data-act="playBubbleSeconds">
+          <div class="field-hint">Instant payout = current B/s × this many seconds.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Cooldown (ms)</div>
+          <input class="input" type="number" step="60000" min="0" value="${v('playCooldown', 5400000)}" data-act="playCooldown">
+          <div class="field-hint">= ${(v('playCooldown', 5400000) / 60000).toFixed(1)} minutes</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+Pages.clicking = () => {
+  const m = State.parsed;
+  const c = m.clicking;
+  const v = (k, d) => c[k]?.value ?? d;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Clicking &amp; Combo</h1>
+      <span class="page-tag">Click feel</span>
+      <div class="page-desc">Manual click rewards: combo timing, critical click cadence and multiplier, "gill click" sweet-spot zone for bonus.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Combo System</div>
+        <div class="section-sub">click streak bonus</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Combo Window (ms)</div>
+          <input class="input" type="number" step="100" min="100" value="${v('comboWindowMs', 3000)}" data-click="comboWindowMs">
+          <div class="field-hint">Max gap between clicks before combo resets.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Combo Threshold</div>
+          <input class="input" type="number" step="1" min="1" value="${v('comboThreshold', 10)}" data-click="comboThreshold">
+          <div class="field-hint">Clicks required to activate combo bonus.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Combo Multiplier</div>
+          <input class="input" type="number" step="1" min="1" value="${v('comboMult', 2)}" data-click="comboMult">
+          <div class="field-hint">×N to click value once combo is active.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Critical Clicks</div>
+        <div class="section-sub">every Nth click</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Crit Cadence — Normal</div>
+          <input class="input" type="number" step="1" min="1" value="${v('critNormal', 10)}" data-click="critNormal">
+          <div class="field-hint">Every Nth click is a critical.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Crit Cadence — Bubbly</div>
+          <input class="input" type="number" step="1" min="1" value="${v('critBubbly', 8)}" data-click="critBubbly">
+          <div class="field-hint">Bubbly personality crits more often.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Crit Multiplier</div>
+          <input class="input" type="number" step="1" min="1" value="${v('critMult', 5)}" data-click="critMult">
+          <div class="field-hint">×N to click value on a critical.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Gill Click (sweet spot)</div>
+        <div class="section-sub">centered click bonus</div>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Sweet Spot Radius (px)</div>
+          <input class="input" type="number" step="1" min="1" value="${v('gillRadius', 35)}" data-click="gillRadius">
+          <div class="field-hint">Click within N px of the axolotl's gills for bonus.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Gill Click Multiplier</div>
+          <input class="input" type="number" step="1" min="1" value="${v('gillMult', 3)}" data-click="gillMult">
+          <div class="field-hint">×N to click value when in sweet spot.</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+Pages.mood = () => {
+  const m = State.parsed;
+  const w = m.mood;
+  const v = (k, d) => w[k]?.value ?? d;
+  const sum = v('weightHunger', 0.3) + v('weightHappiness', 0.35) + v('weightCleanliness', 0.2) + v('weightEnrichment', 0.15);
+  const base = v('multBase', 0.4);
+  const range = v('multRange', 1.6);
+  const at100 = base + 1 * range;
+  const at50 = base + 0.5 * range;
+  const at0 = base;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Mood Curve</h1>
+      <span class="page-tag">B/s × mood</span>
+      <div class="page-desc">Mood is a weighted blend of the four needs. The mood multiplier scales global B/s — keeping needs high is a core engagement loop.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Need Weights</div>
+        <div class="section-sub">computeMood()</div>
+      </div>
+      <div class="section-note ${Math.abs(sum - 1) > 0.001 ? '' : 'aqua'}">
+        Current weights sum to <strong>${sum.toFixed(2)}</strong>. ${Math.abs(sum - 1) > 0.001 ? '⚠ For mood to scale 0–100, weights should total exactly 1.0.' : '✓ Weights are normalized.'}
+      </div>
+      <div class="field-grid">
+        ${[
+          ['🍤 Hunger', 'weightHunger', 0.3],
+          ['😊 Happiness', 'weightHappiness', 0.35],
+          ['🧹 Cleanliness', 'weightCleanliness', 0.2],
+          ['🎮 Enrichment', 'weightEnrichment', 0.15],
+        ].map(([label, key, def]) => `
+          <div class="field">
+            <div class="field-label">${label} Weight</div>
+            <input class="input" type="number" step="0.05" min="0" max="1" value="${v(key, def)}" data-mood="${key}">
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Mood Multiplier Curve</div>
+        <div class="section-sub">computeMoodMult()</div>
+      </div>
+      <div class="section-note aqua">Formula: <code>mult = base + (mood / 100) × range</code>. Default 0.4 + ×1.6 → at 0% mood player gets ×0.4 B/s, at 100% gets ×2.0.</div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Multiplier Base (mood=0)</div>
+          <input class="input" type="number" step="0.05" min="0" value="${base}" data-mood="multBase">
+          <div class="field-hint">B/s multiplier when mood is at zero. Lower = harsher penalty for neglect.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Multiplier Range</div>
+          <input class="input" type="number" step="0.05" min="0" value="${range}" data-mood="multRange">
+          <div class="field-hint">How much the multiplier grows from mood=0 to mood=100.</div>
+        </div>
+      </div>
+
+      <div class="sim-grid" style="margin-top:14px;">
+        <div class="sim-stat"><div class="sim-stat-label">@ 0% Mood</div><div class="sim-stat-value">×${at0.toFixed(2)}</div><div class="sim-stat-sub">Neglected</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">@ 50% Mood</div><div class="sim-stat-value">×${at50.toFixed(2)}</div><div class="sim-stat-sub">Mid-tier</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">@ 100% Mood</div><div class="sim-stat-value leaf">×${at100.toFixed(2)}</div><div class="sim-stat-sub">Radiant</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">Range Spread</div><div class="sim-stat-value gold">×${(at100 / Math.max(at0, 0.01)).toFixed(2)}</div><div class="sim-stat-sub">Top vs bottom</div></div>
+      </div>
+    </div>
+  `;
+};
+
+Pages.drift = () => {
+  const m = State.parsed;
+  const pearlBase = m.drift.pearlBase?.value || 5;
+  const pearlDiv = m.drift.pearlDivisor?.value || 1e10;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Drift &amp; Prestige Tree</h1>
+      <span class="page-tag">${(m.drift.tree || []).length} nodes</span>
+      <div class="page-desc">The Great Drift resets a run in exchange for Pearls. Pearls buy permanent perks in the Drift Tree.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Pearl Formula</div>
+        <div class="section-sub">performDrift()</div>
+      </div>
+      <div class="section-note">Pearls earned = <code>max(base, floor(sqrt(totalBubblesAllTime / divisor)))</code>. Lower divisor = more pearls per drift.</div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Pearl Floor (min)</div>
+          <input class="input" type="number" step="1" min="1" value="${pearlBase}" data-drift-num="pearlBase">
+          <div class="field-hint">Players always get at least this many.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Pearl Divisor</div>
+          <input class="input" type="number" step="1000000000" min="1" value="${pearlDiv}" data-drift-num="pearlDivisor">
+          <div class="field-hint">Higher = pearls are rarer. Default 1e10.</div>
+        </div>
+      </div>
+      <div class="sim-grid" style="margin-top:14px;">
+        <div class="sim-stat"><div class="sim-stat-label">@ 1B bubbles</div><div class="sim-stat-value">${Math.max(pearlBase, Math.floor(Math.sqrt(1e9 / pearlDiv)))}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">@ 1T bubbles</div><div class="sim-stat-value gold">${Math.max(pearlBase, Math.floor(Math.sqrt(1e12 / pearlDiv)))}</div></div>
+        <div class="sim-stat"><div class="sim-stat-label">@ 1Qa bubbles</div><div class="sim-stat-value leaf">${Math.max(pearlBase, Math.floor(Math.sqrt(1e15 / pearlDiv)))}</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Drift Tree Upgrades</div>
+        <div class="section-sub">DRIFT_UPGRADES[]</div>
+      </div>
+      <div class="row-list">
+        ${(m.drift.tree || []).map((t, i) => `
+          <div class="row-item" style="grid-template-columns:36px 1.5fr 0.8fr;">
+            <div class="row-icon">🪬</div>
+            <div>
+              <input class="mini-input" type="text" value="${escAttr(t.name)}" data-drift-field="name" data-drift-idx="${i}" style="font-family:'Fredoka One',cursive;font-size:13px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <input class="mini-input" type="text" value="${escAttr(t.desc)}" data-drift-field="desc" data-drift-idx="${i}" style="font-family:'Inter',sans-serif;font-size:11px;color:var(--text-2);margin-top:4px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <div class="row-cat">${t.id}</div>
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Cost (Pearls)</div>
+              <input class="mini-input" type="number" step="1" min="1" value="${t.cost}" data-drift-field="cost" data-drift-idx="${i}">
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.offline = () => {
+  const m = State.parsed;
+  const o = m.offline;
+  const v = (k, d) => o[k]?.value ?? d;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Offline Earnings</h1>
+      <span class="page-tag">Idle income</span>
+      <div class="page-desc">How much bubble income accumulates while the player is away. Tuning this changes whether the game feels rewarding to leave or punishing.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Offline Income Curve</div>
+        <div class="section-sub">computeOfflineEarnings()</div>
+      </div>
+      <div class="section-note">Formula: <code>earnings = lastBps × 3600 × min(hours, cap) × mult</code>. The Drift Current prestige perk raises the multiplier.</div>
+      <div class="field-grid">
+        <div class="field">
+          <div class="field-label">Minimum Offline (hours)</div>
+          <input class="input" type="number" step="0.01" min="0" value="${v('minHours', 0.05)}" data-off="minHours">
+          <div class="field-hint">Earnings only kick in after this much time away. Default 0.05 (3 min).</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Offline Cap (hours)</div>
+          <input class="input" type="number" step="1" min="1" value="${v('capHours', 12)}" data-off="capHours">
+          <div class="field-hint">Maximum hours of earnings any single offline session can yield.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Base Multiplier</div>
+          <input class="input" type="number" step="0.05" min="0" max="1" value="${v('baseMult', 0.5)}" data-off="baseMult">
+          <div class="field-hint">Fraction of online B/s earned while offline.</div>
+        </div>
+        <div class="field">
+          <div class="field-label">w/ Drift Current Multiplier</div>
+          <input class="input" type="number" step="0.05" min="0" max="1" value="${v('driftCurrentMult', 0.9)}" data-off="driftCurrentMult">
+          <div class="field-hint">Boosted rate after unlocking The Drift Current prestige.</div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+Pages.milestones = () => {
+  const m = State.parsed;
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Milestones</h1>
+      <span class="page-tag">${m.milestones.length} entries</span>
+      <div class="page-desc">In-run feedback popups triggered by reaching upgrade-purchase counts. Title and description are editable; the <code>at</code> threshold controls when each fires.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Upgrade-Count Milestones</div>
+        <div class="section-sub">upMilestones[]</div>
+      </div>
+      <div class="row-list">
+        ${m.milestones.map((ms, i) => `
+          <div class="row-item" style="grid-template-columns:0.6fr 1.8fr 1fr;">
+            <div class="field-stack">
+              <div class="field-stack-label">After N Upgrades</div>
+              <input class="mini-input" type="number" step="1" min="1" value="${ms.at}" data-ms-field="at" data-ms-idx="${i}">
+            </div>
+            <div>
+              <input class="mini-input" type="text" value="${escAttr(ms.title)}" data-ms-field="title" data-ms-idx="${i}" style="font-family:'Fredoka One',cursive;font-size:13px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <input class="mini-input" type="text" value="${escAttr(ms.desc)}" data-ms-field="desc" data-ms-idx="${i}" style="font-family:'Inter',sans-serif;font-size:11px;color:var(--text-2);margin-top:4px;background:transparent;border:1px dashed transparent;padding:4px 6px;">
+              <div class="row-cat">${ms.key} ${ms.hasEffect ? '· has effect()' : ''}</div>
+            </div>
+            <div class="field-stack">
+              <div class="field-stack-label">Effect Hook</div>
+              <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:${ms.hasEffect ? 'var(--gold)' : 'var(--text-3)'};padding:6px 0;">
+                ${ms.hasEffect ? '✓ Preserves logic' : '—'}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+};
+
+Pages.raw = () => {
+  const cfg = serializeConfig();
+  return `
+    <div class="page-header">
+      <h1 class="page-title">Raw JSON Snapshot</h1>
+      <span class="page-tag">Read-only</span>
+      <div class="page-desc">Live JSON view of every parsed balance value. Useful for version-controlling, sharing, or pasting into the Presets dialog to restore later.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Current Configuration</div>
+        <div class="section-sub">JSON</div>
+        <button class="btn btn-sm btn-ghost" id="copy-raw-json" style="margin-left:auto;">📋 Copy</button>
+      </div>
+      <pre style="background:rgba(5,10,20,0.5);border:1px solid var(--border);border-radius:10px;padding:18px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-1);overflow:auto;max-height:540px;line-height:1.55;">${escHtml(JSON.stringify(cfg, null, 2))}</pre>
+    </div>
+  `;
+};
+
+// ──────────────────────────────────────────────────────────────
+// RENDER LOOP
+// ──────────────────────────────────────────────────────────────
+
+function render() {
+  if (!State.parsed) {
+    $('#main').innerHTML = '';
+    $('#empty-state').style.display = 'flex';
+    return;
+  }
+  $('#empty-state').style.display = 'none';
+  const builder = Pages[State.currentPage] || Pages.overview;
+  $('#main').innerHTML = builder();
+  wireFieldHandlers();
+  updateFloatActionBar();
+  updateBadges();
+}
+
+function updateBadges() {
+  if (!State.parsed) return;
+  $('#badge-stages').textContent = State.parsed.stages.length;
+  $('#badge-upgrades').textContent = State.parsed.upgrades.length;
+  $('#badge-helpers').textContent = State.parsed.helpers.length;
+  $('#badge-ach').textContent = State.parsed.achievements.length;
+}
+
+function updateFloatActionBar() {
+  if (!State.parsed) {
+    $('#float-action').classList.remove('visible');
+    return;
+  }
+  const diffs = collectDiffs();
+  const fab = $('#float-action');
+  if (diffs.length > 0) {
+    fab.classList.add('visible');
+    $('#change-count').textContent = diffs.length;
+    $('#file-status').textContent = `${State.filename} · ${diffs.length} edit${diffs.length === 1 ? '' : 's'}`;
+    $('#file-status').className = 'file-status dirty';
+    $('#btn-export').disabled = false;
+  } else {
+    fab.classList.remove('visible');
+    $('#file-status').textContent = `${State.filename} · clean`;
+    $('#file-status').className = 'file-status loaded';
+    $('#btn-export').disabled = true;
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// FIELD HANDLERS — wire all editable inputs
+// ──────────────────────────────────────────────────────────────
+
+function wireFieldHandlers() {
+  const m = State.parsed;
+
+  // STAGES
+  $$('[data-stage-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = +el.dataset.stageIdx;
+      const field = el.dataset.stageField;
+      const val = parseFloat(el.value);
+      if (!isNaN(val)) m.stages[idx][field] = val;
+      onFieldChange();
+    });
+  });
+
+  // BUBBLE GATES
+  $$('[data-gate]').forEach(el => {
+    el.addEventListener('input', () => {
+      const val = parseFloat(el.value);
+      if (!isNaN(val)) m.bubbleGates[el.dataset.gate] = val;
+      onFieldChange();
+    });
+  });
+
+  // UPGRADES
+  $$('[data-up-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = +el.dataset.upIdx;
+      const field = el.dataset.upField;
+      if (field === 'cost') {
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val)) m.upgrades[idx].cost = val;
+      } else {
+        m.upgrades[idx][field] = el.value;
+      }
+      onFieldChange();
+    });
+  });
+
+  // UPGRADE CATEGORY FILTER
+  $$('[data-cat]').forEach(el => {
+    el.addEventListener('click', () => {
+      State.filterCategory = el.dataset.cat;
+      render();
+    });
+  });
+
+  // HELPERS
+  $$('[data-h-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = +el.dataset.hIdx;
+      const field = el.dataset.hField;
+      const tier = el.dataset.hTier != null ? +el.dataset.hTier : null;
+      if (field === 'name') {
+        m.helpers[idx].name = el.value;
+      } else if (field === 'baseBps') {
+        const val = parseFloat(el.value);
+        if (!isNaN(val)) m.helpers[idx].baseBps = val;
+      } else if (field === 'unlockCost') {
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val)) m.helpers[idx].unlockCost = val;
+      } else if (field === 'upgradeCost') {
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val)) m.helpers[idx].upgradeCosts[tier] = val;
+      } else if (field === 'upgradeMult') {
+        const val = parseFloat(el.value);
+        if (!isNaN(val)) m.helpers[idx].upgradeMults[tier] = val;
+      }
+      onFieldChange();
+    });
+  });
+
+  // ACHIEVEMENTS
+  $$('[data-a-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = +el.dataset.aIdx;
+      const field = el.dataset.aField;
+      if (field === 'name' || field === 'desc') {
+        m.achievements[idx][field] = el.value;
+      } else if (field === 'tier') {
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val)) m.achievements[idx].tier = val;
+      } else if (field.startsWith('reward.')) {
+        const key = field.split('.')[1];
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val) && val > 0) m.achievements[idx].reward[key] = val;
+        else delete m.achievements[idx].reward[key];
+      }
+      onFieldChange();
+    });
+  });
+
+  // DRAINS
+  $$('[data-drain]').forEach(el => {
+    el.addEventListener('input', () => {
+      const val = parseInt(el.value, 10);
+      if (!isNaN(val)) m.drainRates[el.dataset.drain] = val;
+      onFieldChange();
+    });
+  });
+
+  // INITIAL STATE
+  $$('[data-initial]').forEach(el => {
+    el.addEventListener('input', () => {
+      const val = parseInt(el.value, 10);
+      const k = el.dataset.initial;
+      if (!isNaN(val) && m.initialState[k]) m.initialState[k].value = val;
+      onFieldChange();
+    });
+  });
+
+  // ACTIVITIES
+  $$('[data-act]').forEach(el => {
+    el.addEventListener('input', () => {
+      const k = el.dataset.act;
+      const val = parseInt(el.value, 10);
+      if (!isNaN(val) && m.activities[k]) m.activities[k].value = val;
+      onFieldChange();
+    });
+  });
+
+  // CLICKING
+  $$('[data-click]').forEach(el => {
+    el.addEventListener('input', () => {
+      const k = el.dataset.click;
+      const val = parseInt(el.value, 10);
+      if (!isNaN(val) && m.clicking[k]) m.clicking[k].value = val;
+      onFieldChange();
+    });
+  });
+
+  // MOOD
+  $$('[data-mood]').forEach(el => {
+    el.addEventListener('input', () => {
+      const k = el.dataset.mood;
+      const val = parseFloat(el.value);
+      if (!isNaN(val) && m.mood[k]) m.mood[k].value = val;
+      onFieldChange();
+    });
+  });
+
+  // DRIFT NUMERIC
+  $$('[data-drift-num]').forEach(el => {
+    el.addEventListener('input', () => {
+      const k = el.dataset.driftNum;
+      const val = parseFloat(el.value);
+      if (!isNaN(val) && m.drift[k]) m.drift[k].value = val;
+      onFieldChange();
+    });
+  });
+
+  // DRIFT TREE FIELDS
+  $$('[data-drift-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = +el.dataset.driftIdx;
+      const field = el.dataset.driftField;
+      if (field === 'cost') {
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val)) m.drift.tree[idx].cost = val;
+      } else {
+        m.drift.tree[idx][field] = el.value;
+      }
+      onFieldChange();
+    });
+  });
+
+  // OFFLINE
+  $$('[data-off]').forEach(el => {
+    el.addEventListener('input', () => {
+      const k = el.dataset.off;
+      const val = parseFloat(el.value);
+      if (!isNaN(val) && m.offline[k]) m.offline[k].value = val;
+      onFieldChange();
+    });
+  });
+
+  // MILESTONES
+  $$('[data-ms-field]').forEach(el => {
+    el.addEventListener('input', () => {
+      const idx = +el.dataset.msIdx;
+      const field = el.dataset.msField;
+      if (field === 'at') {
+        const val = parseInt(el.value, 10);
+        if (!isNaN(val)) m.milestones[idx].at = val;
+      } else {
+        m.milestones[idx][field] = el.value;
+      }
+      onFieldChange();
+    });
+  });
+
+  // RAW JSON COPY
+  const copyRaw = $('#copy-raw-json');
+  if (copyRaw) copyRaw.addEventListener('click', () => {
+    const pre = $('#main pre');
+    if (pre) navigator.clipboard.writeText(pre.textContent).then(() => toast('Copied JSON to clipboard', 'good'));
+  });
+
+  highlightChanges();
+}
+
+function highlightChanges() {
+  const m = State.parsed, d = State.defaults;
+  if (!m || !d) return;
+
+  $$('[data-stage-field]').forEach(el => {
+    const idx = +el.dataset.stageIdx;
+    el.classList.toggle('changed', m.stages[idx][el.dataset.stageField] !== d.stages[idx][el.dataset.stageField]);
+  });
+  $$('[data-gate]').forEach(el => {
+    el.classList.toggle('changed', m.bubbleGates[el.dataset.gate] !== d.bubbleGates[el.dataset.gate]);
+  });
+  $$('[data-up-field]').forEach(el => {
+    const idx = +el.dataset.upIdx;
+    el.classList.toggle('changed', m.upgrades[idx][el.dataset.upField] !== d.upgrades[idx][el.dataset.upField]);
+  });
+  $$('[data-h-field]').forEach(el => {
+    const idx = +el.dataset.hIdx;
+    const field = el.dataset.hField;
+    let same = true;
+    if (field === 'upgradeCost') {
+      const tier = +el.dataset.hTier;
+      same = m.helpers[idx].upgradeCosts[tier] === d.helpers[idx].upgradeCosts[tier];
+    } else if (field === 'upgradeMult') {
+      const tier = +el.dataset.hTier;
+      same = m.helpers[idx].upgradeMults[tier] === d.helpers[idx].upgradeMults[tier];
+    } else {
+      same = m.helpers[idx][field] === d.helpers[idx][field];
+    }
+    el.classList.toggle('changed', !same);
+  });
+  $$('[data-a-field]').forEach(el => {
+    const idx = +el.dataset.aIdx;
+    const field = el.dataset.aField;
+    let same = true;
+    if (field.startsWith('reward.')) {
+      const k = field.split('.')[1];
+      same = (m.achievements[idx].reward[k] || 0) === (d.achievements[idx].reward[k] || 0);
+    } else {
+      same = m.achievements[idx][field] === d.achievements[idx][field];
+    }
+    el.classList.toggle('changed', !same);
+  });
+  $$('[data-drain]').forEach(el => {
+    el.classList.toggle('changed', m.drainRates[el.dataset.drain] !== d.drainRates[el.dataset.drain]);
+  });
+  $$('[data-initial]').forEach(el => {
+    const k = el.dataset.initial;
+    if (m.initialState[k] && d.initialState[k]) el.classList.toggle('changed', m.initialState[k].value !== d.initialState[k].value);
+  });
+  function highlightColl(coll, dColl, attr, camelKey) {
+    $$('[data-' + attr + ']').forEach(el => {
+      const k = el.dataset[camelKey];
+      if (coll[k] && dColl[k]) el.classList.toggle('changed', coll[k].value !== dColl[k].value);
+    });
+  }
+  highlightColl(m.activities, d.activities, 'act', 'act');
+  highlightColl(m.clicking, d.clicking, 'click', 'click');
+  highlightColl(m.mood, d.mood, 'mood', 'mood');
+  highlightColl(m.offline, d.offline, 'off', 'off');
+  $$('[data-drift-num]').forEach(el => {
+    const k = el.dataset.driftNum;
+    if (m.drift[k] && d.drift[k]) el.classList.toggle('changed', m.drift[k].value !== d.drift[k].value);
+  });
+  $$('[data-drift-field]').forEach(el => {
+    const idx = +el.dataset.driftIdx;
+    el.classList.toggle('changed', m.drift.tree[idx][el.dataset.driftField] !== d.drift.tree[idx][el.dataset.driftField]);
+  });
+  $$('[data-ms-field]').forEach(el => {
+    const idx = +el.dataset.msIdx;
+    el.classList.toggle('changed', m.milestones[idx][el.dataset.msField] !== d.milestones[idx][el.dataset.msField]);
+  });
+}
+
+function onFieldChange() {
+  updateFloatActionBar();
+  highlightChanges();
+}
+
+// ──────────────────────────────────────────────────────────────
+// LOAD FILE
+// ──────────────────────────────────────────────────────────────
+
+function loadFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const html = e.target.result;
+    try {
+      const parsed = parseGame(html);
+      if (parsed.stages.length === 0 || parsed.upgrades.length === 0) {
+        throw new Error('Did not find expected game constants. Is this the AxoLottaFun_Game.html file?');
+      }
+      State.rawFile = html;
+      State.filename = file.name;
+      State.parsed = parsed;
+      State.defaults = clone(parsed);
+      render();
+      toast(`Loaded ${file.name} — ${parsed.stages.length} stages, ${parsed.upgrades.length} upgrades, ${parsed.helpers.length} helpers, ${parsed.achievements.length} achievements parsed.`, 'good');
+    } catch (err) {
+      console.error(err);
+      toast('Parse error: ' + err.message, 'bad');
+    }
+  };
+  reader.onerror = () => toast('Could not read file', 'bad');
+  reader.readAsText(file);
+}
+
+// ──────────────────────────────────────────────────────────────
+// EXPORT / DIFF
+// ──────────────────────────────────────────────────────────────
+
+function showDiffModal() {
+  const diffs = collectDiffs();
+  $('#modal-change-count').textContent = diffs.length;
+  if (diffs.length === 0) {
+    $('#diff-list').innerHTML = '<div class="diff-item" style="color:var(--text-3)">No changes — file would be identical to the loaded version.</div>';
+  } else {
+    $('#diff-list').innerHTML = diffs.map(d => `
+      <div class="diff-item">
+        <span class="diff-path">${d.path}</span>
+        <span class="diff-old">${escHtml(String(d.old))}</span>
+        <span class="diff-arrow">→</span>
+        <span class="diff-new">${escHtml(String(d.new))}</span>
+      </div>
+    `).join('');
+  }
+  $('#modal-export').classList.add('open');
+}
+
+function downloadPatched() {
+  try {
+    const patched = compilePatchedHTML();
+    const blob = new Blob([patched], { type: 'text/html' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    const base = State.filename.replace(/\.html?$/i, '');
+    a.download = `${base}_Patched.html`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 200);
+    $('#modal-export').classList.remove('open');
+    toast('Downloaded patched game file', 'good');
+  } catch (err) {
+    console.error(err);
+    toast('Export failed: ' + err.message, 'bad');
+  }
+}
+
+function copyDiff() {
+  const diffs = collectDiffs();
+  const text = diffs.map(d => `${d.path}: ${d.old} → ${d.new}`).join('\n');
+  navigator.clipboard.writeText(text).then(() => toast('Diff copied to clipboard', 'good'));
+}
+
+// ──────────────────────────────────────────────────────────────
+// PRESETS
+// ──────────────────────────────────────────────────────────────
+
+function serializeConfig() {
+  const m = State.parsed;
+  return {
+    stages: m.stages.map(s => ({ id: s.id, label: s.label, minDays: s.minDays, bpsBonus: s.bpsBonus, clickBonus: s.clickBonus })),
+    bubbleGates: { HATCHLING: m.bubbleGates.HATCHLING, JUVENILE: m.bubbleGates.JUVENILE, ADULT: m.bubbleGates.ADULT, ELDER: m.bubbleGates.ELDER, LEGEND: m.bubbleGates.LEGEND },
+    drainRates: { hunger: m.drainRates.hunger, happiness: m.drainRates.happiness, cleanliness: m.drainRates.cleanliness, enrichment: m.drainRates.enrichment },
+    upgrades: m.upgrades.map(u => ({ id: u.id, name: u.name, cost: u.cost, desc: u.desc })),
+    helpers: m.helpers.map(h => ({ id: h.id, name: h.name, baseBps: h.baseBps, unlockCost: h.unlockCost, upgradeCosts: h.upgradeCosts, upgradeMults: h.upgradeMults })),
+    achievements: m.achievements.map(a => ({ id: a.id, name: a.name, desc: a.desc, reward: a.reward, tier: a.tier })),
+    activities: Object.fromEntries(Object.entries(m.activities).map(([k, v]) => [k, v.value])),
+    clicking: Object.fromEntries(Object.entries(m.clicking).map(([k, v]) => [k, v.value])),
+    mood: Object.fromEntries(Object.entries(m.mood).map(([k, v]) => [k, v.value])),
+    offline: Object.fromEntries(Object.entries(m.offline).map(([k, v]) => [k, v.value])),
+    drift: {
+      pearlBase: m.drift.pearlBase?.value,
+      pearlDivisor: m.drift.pearlDivisor?.value,
+      tree: (m.drift.tree || []).map(t => ({ id: t.id, name: t.name, cost: t.cost, desc: t.desc })),
+    },
+    milestones: m.milestones.map(ms => ({ key: ms.key, at: ms.at, title: ms.title, desc: ms.desc })),
+    initialState: { feedBonus: m.initialState.feedBonus?.value },
+  };
+}
+
+function applyConfig(cfg) {
+  const m = State.parsed;
+  try {
+    if (cfg.stages) cfg.stages.forEach((s, i) => {
+      if (!m.stages[i]) return;
+      ['label', 'minDays', 'bpsBonus', 'clickBonus'].forEach(k => { if (s[k] != null) m.stages[i][k] = s[k]; });
+    });
+    if (cfg.bubbleGates) Object.keys(cfg.bubbleGates).forEach(k => { if (m.bubbleGates[k] != null) m.bubbleGates[k] = cfg.bubbleGates[k]; });
+    if (cfg.drainRates) Object.keys(cfg.drainRates).forEach(k => { if (m.drainRates[k] != null) m.drainRates[k] = cfg.drainRates[k]; });
+    if (cfg.upgrades) cfg.upgrades.forEach(u => {
+      const t = m.upgrades.find(x => x.id === u.id);
+      if (t) { if (u.name != null) t.name = u.name; if (u.cost != null) t.cost = u.cost; if (u.desc != null) t.desc = u.desc; }
+    });
+    if (cfg.helpers) cfg.helpers.forEach(h => {
+      const t = m.helpers.find(x => x.id === h.id);
+      if (t) {
+        if (h.name != null) t.name = h.name;
+        if (h.baseBps != null) t.baseBps = h.baseBps;
+        if (h.unlockCost != null) t.unlockCost = h.unlockCost;
+        if (h.upgradeCosts) t.upgradeCosts = h.upgradeCosts.slice();
+        if (h.upgradeMults) t.upgradeMults = h.upgradeMults.slice();
+      }
+    });
+    if (cfg.achievements) cfg.achievements.forEach(a => {
+      const t = m.achievements.find(x => x.id === a.id);
+      if (t) {
+        if (a.name != null) t.name = a.name;
+        if (a.desc != null) t.desc = a.desc;
+        if (a.tier != null) t.tier = a.tier;
+        if (a.reward) t.reward = { ...a.reward };
+      }
+    });
+    ['activities', 'clicking', 'mood', 'offline'].forEach(coll => {
+      if (cfg[coll]) Object.keys(cfg[coll]).forEach(k => {
+        if (m[coll][k]) m[coll][k].value = cfg[coll][k];
+      });
+    });
+    if (cfg.drift) {
+      if (cfg.drift.pearlBase != null && m.drift.pearlBase) m.drift.pearlBase.value = cfg.drift.pearlBase;
+      if (cfg.drift.pearlDivisor != null && m.drift.pearlDivisor) m.drift.pearlDivisor.value = cfg.drift.pearlDivisor;
+      if (cfg.drift.tree) cfg.drift.tree.forEach(t => {
+        const target = m.drift.tree.find(x => x.id === t.id);
+        if (target) { if (t.name != null) target.name = t.name; if (t.cost != null) target.cost = t.cost; if (t.desc != null) target.desc = t.desc; }
+      });
+    }
+    if (cfg.milestones) cfg.milestones.forEach(ms => {
+      const t = m.milestones.find(x => x.key === ms.key);
+      if (t) { if (ms.at != null) t.at = ms.at; if (ms.title != null) t.title = ms.title; if (ms.desc != null) t.desc = ms.desc; }
+    });
+    if (cfg.initialState && cfg.initialState.feedBonus != null && m.initialState.feedBonus) {
+      m.initialState.feedBonus.value = cfg.initialState.feedBonus;
+    }
+    return true;
+  } catch (err) {
+    console.error(err);
+    return false;
+  }
+}
+
+function applyPreset(name) {
+  if (name === 'default') {
+    State.parsed = clone(State.defaults);
+    toast('Restored to defaults from loaded file', 'good');
+    render();
+    return;
+  }
+  const cfg = serializeConfig();
+  if (name === 'fast') {
+    cfg.upgrades.forEach(u => u.cost = Math.max(1, Math.floor(u.cost / 2)));
+    cfg.helpers.forEach(h => {
+      h.unlockCost = Math.max(1, Math.floor(h.unlockCost / 2));
+      h.upgradeCosts = h.upgradeCosts.map(c => Math.max(1, Math.floor(c / 2)));
+    });
+    Object.keys(cfg.bubbleGates).forEach(k => cfg.bubbleGates[k] = Math.floor(cfg.bubbleGates[k] / 2));
+    cfg.stages.forEach(s => s.bpsBonus = +(s.bpsBonus * 2).toFixed(2));
+  } else if (name === 'slow') {
+    cfg.upgrades.forEach(u => u.cost = Math.floor(u.cost * 1.5));
+    cfg.helpers.forEach(h => {
+      h.unlockCost = Math.floor(h.unlockCost * 1.5);
+      h.upgradeCosts = h.upgradeCosts.map(c => Math.floor(c * 1.5));
+    });
+    Object.keys(cfg.bubbleGates).forEach(k => cfg.bubbleGates[k] = Math.floor(cfg.bubbleGates[k] * 1.5));
+    cfg.drainRates.hunger = Math.min(20, cfg.drainRates.hunger + 2);
+    cfg.drainRates.happiness = Math.min(20, cfg.drainRates.happiness + 2);
+  } else if (name === 'generous') {
+    cfg.offline.baseMult = 0.8;
+    cfg.offline.capHours = 24;
+    cfg.offline.driftCurrentMult = 1.0;
+    cfg.drainRates.hunger = Math.max(1, cfg.drainRates.hunger - 2);
+    cfg.drainRates.happiness = Math.max(1, cfg.drainRates.happiness - 2);
+    cfg.drainRates.cleanliness = Math.max(1, cfg.drainRates.cleanliness - 2);
+    cfg.drainRates.enrichment = Math.max(1, cfg.drainRates.enrichment - 1);
+  }
+  applyConfig(cfg);
+  toast(`Applied preset: ${name}`, 'good');
+  render();
+}
+
+// ──────────────────────────────────────────────────────────────
+// INIT / EVENT WIRING
+// ──────────────────────────────────────────────────────────────
+
+function init() {
+  $$('.nav-item[data-page]').forEach(el => {
+    el.addEventListener('click', () => {
+      $$('.nav-item').forEach(n => n.classList.remove('active'));
+      el.classList.add('active');
+      State.currentPage = el.dataset.page;
+      State.filterCategory = 'all';
+      render();
+    });
+  });
+
+  // File input
+  const fileInput = $('#file-input');
+  fileInput.addEventListener('change', e => loadFile(e.target.files[0]));
+
+  // Drag & drop
+  const dropZone = $('#drop-zone');
+  ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag'); }));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+  });
+
+  // Topbar buttons
+  $('#btn-load').addEventListener('click', () => {
+    const i = document.createElement('input');
+    i.type = 'file';
+    i.accept = '.html';
+    i.addEventListener('change', e => loadFile(e.target.files[0]));
+    i.click();
+  });
+
+  $('#btn-reset').addEventListener('click', () => {
+    if (!State.parsed) return;
+    if (collectDiffs().length === 0) {
+      toast('Nothing to reset — no pending changes.', 'warn');
+      return;
+    }
+    if (!confirm('Discard all pending changes and revert to the originally loaded values?')) return;
+    State.parsed = clone(State.defaults);
+    render();
+    toast('All changes reverted to loaded file', 'good');
+  });
+
+  $('#btn-discard').addEventListener('click', () => $('#btn-reset').click());
+
+  $('#btn-preset').addEventListener('click', () => {
+    if (!State.parsed) { toast('Load a game file first.', 'warn'); return; }
+    $('#preset-json').value = JSON.stringify(serializeConfig(), null, 2);
+    $('#modal-preset').classList.add('open');
+  });
+
+  $('#btn-export').addEventListener('click', showDiffModal);
+  $('#btn-export-2').addEventListener('click', showDiffModal);
+  $('#btn-preview').addEventListener('click', showDiffModal);
+
+  $('#modal-cancel').addEventListener('click', () => $('#modal-export').classList.remove('open'));
+  $('#modal-download').addEventListener('click', downloadPatched);
+  $('#modal-copy').addEventListener('click', copyDiff);
+  $('#modal-export').addEventListener('click', e => { if (e.target === $('#modal-export')) $('#modal-export').classList.remove('open'); });
+
+  $('#preset-cancel').addEventListener('click', () => $('#modal-preset').classList.remove('open'));
+  $('#preset-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText($('#preset-json').value).then(() => toast('Config JSON copied', 'good'));
+  });
+  $('#preset-apply').addEventListener('click', () => {
+    if (!State.parsed) { toast('Load a game file first.', 'warn'); return; }
+    try {
+      const cfg = JSON.parse($('#preset-json').value);
+      if (applyConfig(cfg)) {
+        render();
+        $('#modal-preset').classList.remove('open');
+        toast('Config applied. Review changes and export when ready.', 'good');
+      } else {
+        toast('Config did not apply cleanly.', 'bad');
+      }
+    } catch (err) {
+      toast('Invalid JSON: ' + err.message, 'bad');
+    }
+  });
+  $$('[data-preset]').forEach(b => b.addEventListener('click', () => {
+    if (!State.parsed) { toast('Load a game file first.', 'warn'); return; }
+    applyPreset(b.dataset.preset);
+    $('#preset-json').value = JSON.stringify(serializeConfig(), null, 2);
+  }));
+  $('#modal-preset').addEventListener('click', e => { if (e.target === $('#modal-preset')) $('#modal-preset').classList.remove('open'); });
+
+  // ESC closes modals
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      $('#modal-export').classList.remove('open');
+      $('#modal-preset').classList.remove('open');
+    }
+  });
+
+  // Initial render — empty state
+  render();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
